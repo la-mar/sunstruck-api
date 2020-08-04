@@ -1,0 +1,11 @@
+{
+    "executionEnvironments": [{
+        "root": ".",
+        "extraPaths": [
+            "./src",
+            "./src/sunstruck"
+        ]
+    }, {
+        "root": "tests"
+    }]
+}

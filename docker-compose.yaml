@@ -1,0 +1,44 @@
+version: "3.7"
+
+x-defaults: &defaults
+  image: sunstruck
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  environment:
+    - DATABASE_HOST=postgres
+    - PYTHONPATH=/app/sunstruck
+  env_file:
+    - .env
+  depends_on:
+    - postgres
+  volumes:
+    - ./src/sunstruck:/app/sunstruck
+
+services:
+  web:
+    <<: *defaults
+    container_name: sunstruck_web
+    command: sunstruck run dev --host 0.0.0.0 --port 8000
+    ports:
+      - 8000:8000
+  postgres:
+    image: timescale/timescaledb:latest-pg12
+    container_name: sunstruck_postgres
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - sunstruck-api-pgdata:/var/lib/postgresql/data/pgdata
+  # db_migration:
+  #   <<: *defaults
+  #   container_name: sunstruck_db_migrations
+  #   restart: "no"
+  #   command: sunstruck db upgrade
+volumes:
+  sunstruck-api-pgdata:

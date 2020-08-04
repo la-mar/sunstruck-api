@@ -1,0 +1,78 @@
+[tool.poetry]
+name = "sunstruck"
+version = "0.1.0"
+description = ""
+authors = ["Brock Friedrich <brocklfriedrich@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "^0.60.1"
+logutils = "^0.3.5"
+tomlkit = "^0.6.0"
+json-log-formatter = "^0.3.0"
+sqlalchemy = "^1.3.18"
+psycopg2-binary = "^2.8.5"
+asyncpg = "^0.20.1"
+typer = "^0.3.1"
+orjson = "^3.3.0"
+uvicorn = "^0.11.6"
+sqlalchemy-utils = "^0.36.8"
+pytz = "^2020.1"
+alembic = "^1.4.2"
+attrs = "^19.3.0"
+pyparsing = "^2.4.7"
+requests = "^2.24.0"
+gino = {version = "^1.0.1", extras = ["starlette"]}
+httpx = "^0.13.3"
+pydantic = {version = "^1.6.1", extras = ["email", "dotenv"]}
+
+[tool.poetry.dev-dependencies]
+black = "^19.10b0"
+flake8 = "^3.8.3"
+ipython = "^7.16.1"
+pytest-cov = "^2.10.0"
+pytest-asyncio = "^0.14.0"
+mypy = "^0.782"
+pandas = "^1.1.0"
+async_asgi_testclient = "^1.4.4"
+psutil = "^5.7.2"
+pytest = "^6.0.1"
+codecov = "^2.1.8"
+
+[tool.poetry.scripts]
+sunstruck = "sunstruck.manage:main"
+seed_db = "scripts.seed_db:run"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "nocover",
+    "if self.debug",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "logger.debug",
+    "if 0:",
+    "if conf.DEBUG:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.pytest.ini_options]
+addopts = "--log-level 30 --log-cli-level 30"
+junit_family = "xunit2"
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore: .*loop argument is deprecated:DeprecationWarning",
+    "ignore: .*direct construction of Function has been deprecated"
+]
+
+[tool.isort]
+multi_line_output=3
+include_trailing_comma=true
+force_grid_wrap=0
+use_parentheses=true
+line_length=88
+known_third_party = ["alembic", "async_asgi_testclient", "asyncpg", "click", "fastapi", "gino", "httpx", "json_log_formatter", "logutils", "numpy", "orjson", "pandas", "psutil", "pydantic", "pytest", "pytz", "sqlalchemy", "sqlalchemy_utils", "starlette", "tomlkit", "typer", "uvloop"]
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
