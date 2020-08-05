@@ -42,10 +42,6 @@ class Pagination:
         self.sort_direction = "desc" if desc else "asc"
         self.model: Model = None
 
-    async def count(self, filter: Optional[Union[str, TextClause]] = None) -> int:
-        filter = filter if filter is not None else self.filter
-        return await self.model.agg.count(filter=filter)
-
     def get_next_url(self, count: int) -> Optional[str]:
         if self.offset + self.limit >= count or self.limit <= 0:
             return None
@@ -101,7 +97,7 @@ class Pagination:
         filter: Optional[str] = None,
     ) -> dict:
         self.model = model
-        count = await self.count(filter)
+        count = await self.model.agg.count(filter)
 
         return {
             "count": count,
@@ -116,6 +112,20 @@ class Pagination:
         serializer: Optional[PydanticModel] = None,
         filter: Optional[str] = None,
     ) -> Tuple[List[Union[Dict, PydanticModel]], Dict[str, Union[int, List]]]:
+        """ Paginate using link headers
+
+        Arguments:
+            model {Model} -- SQLAlchemy data model
+
+        Keyword Arguments:
+            serializer {Optional[PydanticModel]} -- [description] (default: {None})
+            filter {Optional[str]} -- textual filter expression
+                (e.g. "timestamp > 2020-01-01 and timestamp <= 2020-12-31") (default: {None})
+
+        Returns:
+            Tuple[List[Union[Dict, PydanticModel]], Dict[str, Union[int, List]]] --
+                Tuple of data and headers
+        """
         p = await self.paginate(model=model, serializer=serializer, filter=filter)
         headers = {
             "x-total-count": p["count"],
