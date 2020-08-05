@@ -17,7 +17,6 @@ jobs:
         python-version: [3.8]
 
     services:
-
       postgres:
         image: timescale/timescaledb:latest-pg12
         env:
@@ -35,11 +34,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - uses: Gr1N/setup-poetry@v2
       - uses: actions/cache@v1
-          with:
-            path: ~/.cache/pypoetry/virtualenvs
-            key: ${{ runner.os }}-deps-${{ hashFiles('poetry.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-deps-
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: ${{ runner.os }}-deps-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
       - name: Install dependencies
         run: poetry install
       - name: Run tests
