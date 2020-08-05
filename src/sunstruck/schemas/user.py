@@ -4,7 +4,7 @@ from pydantic import EmailStr
 
 from schemas.bases import BaseModel, ORMBase
 
-__all__ = ["User", "UserCreateIn", "UserUpdateIn"]
+__all__ = ["User", "UserCreateIn", "UserUpdateIn", "UserOut"]
 
 
 class User(BaseModel):
@@ -18,20 +18,29 @@ class User(BaseModel):
 
 
 class UserCreateIn(User):
-    """ Schema defining properties to available to post requests """
+    """ Properties available to POST requests """
 
     first_name: str
     last_name: str
     email: EmailStr
+    password: str
 
 
 class UserUpdateIn(User):
-    """ Schema defining properties available to put/patch requests """
+    """ Properties available to PUT/PATCH requests """
+
+    password: Optional[str] = None
 
 
 class UserOut(ORMBase, User):
-    """ Schema defining properties to include in API responses """
+    """ Properties to include in API responses """
 
     first_name: str
     last_name: str
     email: EmailStr
+
+
+class UserInDB(ORMBase, User):
+    """ Internal only properties """
+
+    hashed_password: str

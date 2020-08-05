@@ -10,6 +10,7 @@
     raise an error.
  """
 
+import secrets
 from typing import Dict
 
 import uvloop
@@ -30,7 +31,6 @@ conf: Config = Config(env_file=".env")  # initialize from .env file, if present
 
 ENV: str = conf("ENV", cast=str, default="development")
 DEBUG: bool = conf("DEBUG", cast=bool, default=False)
-SECRET_KEY: Secret = conf("SECRET_KEY", cast=Secret)
 
 
 # --- backends --------------------------------------------------------------- #
@@ -76,7 +76,20 @@ ALEMBIC_CONFIG: DatabaseURL = DatabaseURL(
 LOG_LEVEL: str = conf("LOG_LEVEL", cast=str, default="20")
 LOG_FORMAT: str = conf("LOG_FORMAT", cast=str, default="json")
 
-# --- accessors -------------------------------------------------------------- #
+# --- other ------------------------------------------------------------------ #
+
+# FIRST_SUPERUSER: EmailStr
+# FIRST_SUPERUSER_PASSWORD: str
+USERS_OPEN_REGISTRATION: bool = True
+EMAILS_ENABLED: bool = False
+
+# --- security --------------------------------------------------------------- #
+
+# SECRET_KEY: Secret = conf("SECRET_KEY", cast=Secret)
+SECRET_KEY: str = secrets.token_urlsafe(32)
+
+ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 * 7  # 7 days
+EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
 
 
 def items() -> Dict:

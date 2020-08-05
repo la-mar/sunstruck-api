@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import ORJSONResponse
 
 from api.helpers import Pagination
+from api.helpers.auth import get_current_active_user
 from db.models import User as ORMUser
 from schemas.user import UserCreateIn, UserOut, UserUpdateIn
 
@@ -14,6 +15,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 ERROR_404: Dict = dict(status_code=codes.HTTP_404_NOT_FOUND, detail="user not found")
+
+
+@router.get("/me", response_model=UserOut)
+async def read_users_me(current_user: ORMUser = Depends(get_current_active_user)):
+    return current_user
 
 
 @router.post("/", response_model=UserOut)

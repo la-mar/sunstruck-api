@@ -136,7 +136,9 @@ and Alembic. The schema migrations produced by Alembic can be found [here](src/s
 #### API Improvements
 
 - Batch POSTing endpoint
-- Implement Auth (OAuth2)
+- Implement Auth (OAuth2): Auth Code and Client Credentials flows
+  - Generate/view client credentials in user profile
+  - A user account can be tied to multiple client credentials
 
 #### Database Improvements
 
