@@ -42,15 +42,8 @@ class Pagination:
         self.model: Model = None
 
     async def count(self, filter: Optional[Union[str, TextClause]] = None) -> int:
-        # col = self.model.pk[0] if len(list(self.model.pk)) > 0 else self.model.c[0]
-        q = db.select([db.func.count(self.model.agg.default_column)])
         filter = filter if filter is not None else self.filter
-        if filter is not None:
-            if not isinstance(filter, TextClause):
-                filter = db.text(filter)
-            q = q.where(filter)
-
-        return await q.gino.scalar() or 0
+        return await self.model.agg.count(filter=filter)
 
     def get_next_url(self, count: int) -> Optional[str]:
         if self.offset + self.limit >= count or self.limit <= 0:
