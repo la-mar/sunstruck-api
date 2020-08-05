@@ -20,7 +20,7 @@ jobs:
       postgres:
         image: timescale/timescaledb:latest-pg12
         env:
-          POSTGRES_USER: user
+          POSTGRES_USER: username
           POSTGRES_PASSWORD: password
           POSTGRES_DB: testing
         ports:
@@ -33,7 +33,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - uses: Gr1N/setup-poetry@v2
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         with:
           path: ~/.cache/pypoetry/virtualenvs
           key: ${{ runner.os }}-deps-${{ hashFiles('poetry.lock') }}
@@ -45,7 +45,7 @@ jobs:
         env:
           CI: true
           DATABASE_NAME: testing
-          DATABASE_USERNAME: user
+          DATABASE_USERNAME: username
           DATABASE_PASSWORD: password
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
