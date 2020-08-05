@@ -30,6 +30,7 @@ async def list_users(response: ORJSONResponse, pagination: Pagination = Depends(
     """
     Get a list of users.
     """
+
     data, headers = await pagination.paginate_links(ORMUser, serializer=None)
 
     response = pagination.set_headers(response, headers)
@@ -45,7 +46,6 @@ async def retrieve_user(id: int):
     user: UserOut = await ORMUser.get(id)
     if not user:
         raise HTTPException(**ERROR_404)
-    user = user.to_dict()
 
     return user
 
