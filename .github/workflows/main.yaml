@@ -20,7 +20,7 @@ jobs:
       postgres:
         image: timescale/timescaledb:latest-pg12
         env:
-          POSTGRES_USER: username
+          POSTGRES_USER: testing
           POSTGRES_PASSWORD: password
           POSTGRES_DB: testing
         ports:
@@ -45,10 +45,9 @@ jobs:
         env:
           CI: true
           DATABASE_NAME: testing
-          DATABASE_USERNAME: username
+          DATABASE_USERNAME: testing
           DATABASE_PASSWORD: password
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           LOG_LEVEL: 10
-        # run: poetry --version
         run: poetry run pytest --cov src/sunstruck tests/ --cov-report html:./coverage/coverage.html --junitxml=test-results/python/junit.xml --log-cli-level 10 --log-level 10
