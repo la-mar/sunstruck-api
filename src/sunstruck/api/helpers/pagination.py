@@ -16,7 +16,7 @@ LINK_TEMPLATE = '<{url}>; rel="{rel}"'
 
 
 class Pagination:
-    """ Paging dependency for endpoints"""
+    """ Paging dependency for endpoints """
 
     default_offset = 0
     default_limit = 25
@@ -32,6 +32,7 @@ class Pagination:
         sort: str = Query(default=""),
         desc: bool = Query(default=True),
     ):
+
         self.request = request
         self.offset = offset
         self.limit = limit
