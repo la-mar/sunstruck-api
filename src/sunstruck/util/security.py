@@ -1,11 +1,12 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
 from jose import jwt
 from passlib.context import CryptContext
 
 import config as conf
+from util.dt import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +19,16 @@ ALGORITHM = "HS256"
 def create_access_token(
     subject: Union[str, Any], expires_delta: timedelta = None
 ) -> str:
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=conf.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = utcnow() + (
+        expires_delta or timedelta(minutes=conf.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, conf.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def decode_token(token: str) -> Dict[str, Union[str, int]]:
+    return jwt.decode(token, conf.SECRET_KEY, algorithms=[ALGORITHM])
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -37,7 +41,7 @@ def get_password_hash(password: str) -> str:
 
 def generate_password_reset_token(email: str) -> str:
     delta = timedelta(hours=conf.EMAIL_RESET_TOKEN_EXPIRE_HOURS)
-    now = datetime.utcnow()
+    now = utcnow()
     expires = now + delta
     exp = expires.timestamp()
     encoded_jwt = jwt.encode(
@@ -48,8 +52,8 @@ def generate_password_reset_token(email: str) -> str:
 
 def verify_password_reset_token(token: str) -> Optional[str]:
     try:
-        decoded_token = jwt.decode(token, conf.SECRET_KEY, algorithms=[ALGORITHM])
-        return decoded_token["email"]
+        decoded_token = decode_token(token)
+        return str(decoded_token["sub"])  # email
     except jwt.JWTError:
         return None
 
