@@ -60,6 +60,9 @@ exclude_lines = [
     "if __name__ == .__main__.:",
 ]
 
+[tool.coverage.html]
+extra_css = ".config/cov.css"
+
 [tool.pytest.ini_options]
 addopts = "--log-level 30 --log-cli-level 30"
 junit_family = "xunit2"
