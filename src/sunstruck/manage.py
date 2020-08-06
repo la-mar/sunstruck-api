@@ -50,8 +50,14 @@ def downgrade(revision: str = "-1", args: List[str] = None):
 
 
 @db_cli.command(
-    help="Drop the current database and rebuild using the existing migrations"
+    help="Create the system master account using the configured master credentials",
+    short_help="Create the system master account",
 )
+def create_superuser():
+    asyncio.run(init_db())
+
+
+@db_cli.command(help="Drop amd rebuild the current database")
 def recreate(args: List[str] = None):  # nocover
 
     if conf.ENV not in ["dev", "development"]:
@@ -74,7 +80,7 @@ def recreate(args: List[str] = None):  # nocover
             logger.warning(f"Creating new database at: {short_url}")
             create_database(url)
         upgrade()
-        asyncio.run(init_db())
+        create_superuser()
         logger.warning("Database recreation complete")
 
 
