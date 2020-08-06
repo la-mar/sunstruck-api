@@ -1,3 +1,19 @@
+<div style="text-align:center;">
+  <table >
+    <tr>
+      <a href="(https://circleci.com/gh/la-mar/sunstruck-api">
+        <img src="https://github.com/la-mar/sunstruck-api/workflows/Main/badge.svg" />
+      </a>
+      <a href="https://codecov.io/gh/la-mar/sunstruck-api">
+        <img src="https://codecov.io/gh/la-mar/sunstruck-api/branch/master/graph/badge.svg" />
+      </a>
+        <!-- <a href="https://hub.docker.com/r/brocklfriedrich/sunstruck-api">
+        <img src="https://img.shields.io/docker/pulls/brocklfriedrich/sunstruck-api.svg" />
+      </a> -->
+    </tr>
+  </table>
+</div>
+
 # sunstruck-api
 
 # About
