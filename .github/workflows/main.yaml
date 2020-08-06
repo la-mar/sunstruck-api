@@ -39,6 +39,11 @@ jobs:
           key: ${{ runner.os }}-deps-${{ hashFiles('poetry.lock') }}
           restore-keys: |
             ${{ runner.os }}-deps-
+      - uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage/python/coverage.xml
+          fail_ci_if_error: true
+
       - name: Install dependencies
         run: poetry install
       - name: Run tests
@@ -50,5 +55,5 @@ jobs:
           DATABASE_PASSWORD: password
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
-          LOG_LEVEL: 10
+          LOG_LEVEL: 30
         run: poetry run pytest --cov src/sunstruck tests/ --cov-report html:./coverage/coverage.html --junitxml=test-results/python/junit.xml --log-cli-level 10 --log-level 10
