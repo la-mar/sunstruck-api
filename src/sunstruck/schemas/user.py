@@ -11,9 +11,12 @@ __all__ = ["User", "UserCreateIn", "UserUpdateIn", "UserOut"]
 class User(BaseModel):
     """ Base model defining properties shared across schemas """
 
+    username: Optional[str]
+    email: Optional[EmailStr]
+    is_active: Optional[bool]
+    is_superuser: Optional[bool]
     first_name: Optional[str]
     last_name: Optional[str]
-    email: Optional[EmailStr]
     phone_number: Optional[str]
     country_code: Optional[str]
 
@@ -21,8 +24,7 @@ class User(BaseModel):
 class UserCreateIn(User):
     """ Properties available to POST requests """
 
-    first_name: str
-    last_name: str
+    username: str
     email: EmailStr
     hashed_password: str = Field(..., alias="password")
 
@@ -44,8 +46,7 @@ class UserUpdateIn(User):
 class UserOut(ORMBase, User):
     """ Properties to include in API responses """
 
-    first_name: str
-    last_name: str
+    username: str
     email: EmailStr
 
 
