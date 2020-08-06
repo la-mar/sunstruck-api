@@ -17,18 +17,33 @@ ALGORITHM = "HS256"
 
 
 def create_access_token(
-    subject: Union[str, Any], expires_delta: timedelta = None
+    subject: Union[str, Any], expires_delta: timedelta = None, secret: str = None
 ) -> str:
+    """ Generate a JWT access token.
+
+    Arguments:
+        subject {Union[str, Any]} -- the subject of the key's purpose.
+
+    Keyword Arguments:
+        expires_delta {timedelta} -- duration the key should remain active (default: {None})
+        secret {str} -- an extra secret to augment the system-wide secret key.
+            For example, a user's email address or hashed_password. (default: {None})
+
+
+    Returns:
+        str -- [description]
+    """
     expire = utcnow() + (
         expires_delta or timedelta(minutes=conf.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode = {"exp": expire, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, conf.SECRET_KEY, algorithm=ALGORITHM)
+    secret = conf.SECRET_KEY + (secret or "")
+    encoded_jwt = jwt.encode(to_encode, secret, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def decode_token(token: str) -> Dict[str, Union[str, int]]:
-    return jwt.decode(token, conf.SECRET_KEY, algorithms=[ALGORITHM])
+def decode_token(token: str, secret: str = None) -> Dict[str, Union[str, int]]:
+    return jwt.decode(token, conf.SECRET_KEY + (secret or ""), algorithms=[ALGORITHM])
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -39,23 +54,79 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def generate_password_reset_token(email: str) -> str:
-    delta = timedelta(hours=conf.EMAIL_RESET_TOKEN_EXPIRE_HOURS)
+def generate_password_reset_token(
+    email: str, expires_delta: timedelta = None, secret: str = None
+) -> str:
+    """ Generate a one-time use token for password reset. The generated token
+        is comprised of three keys:
+            - exp (expiration): the point in time that the token expires.
+            - nbf (not before): the point in time that this token becomes active.
+            - sub (subject): the subject of the token.
+
+        The value of each key is calculated as follows:
+
+            - exp = utcnow + offset of a few minutes into the future
+                - the value of offset is determined by the EMAIL_RESET_TOKEN_EXPIRE_MINUTES
+                  configuration setting.
+            - nbf = utcnow
+            - sub = the email parameter, which is the user's email address.
+
+        Example of the token's structure, once decoded:
+            {
+                'exp': 1596733678,
+                'nbf': 1596732778,
+                'sub': 'user@example.com'
+            }
+
+    Arguments:
+        email {str} -- the user's email address
+
+    Keyword Arguments:
+        secret {str} -- an extra secret to augment the system-wide secret key.
+            For example, a user's email address or hashed_password. (default: {None})
+
+    Returns:
+        str -- a signed JWT token
+    """
+
+    # nbf: https://tools.ietf.org/html/rfc7519#section-4.1.5
+
     now = utcnow()
-    expires = now + delta
-    exp = expires.timestamp()
-    encoded_jwt = jwt.encode(
-        {"exp": exp, "nbf": now, "sub": email}, conf.SECRET_KEY, algorithm=ALGORITHM,
+    expire = now + (
+        expires_delta or timedelta(minutes=conf.EMAIL_RESET_TOKEN_EXPIRE_MINUTES)
     )
-    return encoded_jwt
+    content = {"exp": expire, "nbf": now, "sub": email}
+    secret = conf.SECRET_KEY + (secret or "")
+
+    return jwt.encode(content, secret, algorithm=ALGORITHM)
 
 
-def verify_password_reset_token(token: str) -> Optional[str]:
+def verify_password_reset_token(token: str, secret: str = None) -> Optional[Dict]:
+    """ Verify the authenticity of a password reset token.
+
+    Arguments:
+        token {str} -- encoded JWT token. The decoded token should have all of the
+            following keys: exp, nbf, and sub.
+
+    Keyword Arguments:
+        secret {str} -- an extra secret to augment the system-wide secret key.
+            For example, a user's email address or hashed_password. (default: {None})
+
+    Returns:
+        Optional[str] -- the requesting user's email address, if verification
+            was successful.
+    """
     try:
-        decoded_token = decode_token(token)
-        return str(decoded_token["sub"])  # email
-    except jwt.JWTError:
+        content = decode_token(token, secret=secret)
+        return content
+    except jwt.JWTError as e:
+        using_extra_secret = secret is not None
+        logger.debug(f"{e.__class__.__name__}: {e} ({using_extra_secret=})")
         return None
+
+
+def get_unverified_subject(token: str) -> Optional[str]:
+    return jwt.get_unverified_claims(token).get("sub")
 
 
 def send_email(
@@ -111,7 +182,7 @@ def send_reset_password_email(email_to: str, email: str, token: str) -> None:
     #         "project_name": conf.project,
     #         "username": email,
     #         "email": email_to,
-    #         "valid_hours": conf.EMAIL_RESET_TOKEN_EXPIRE_HOURS,
+    #         "valid_hours": conf.EMAIL_RESET_TOKEN_EXPIRE_MINUTES,
     #         "link": link,
     #     },
     # )
