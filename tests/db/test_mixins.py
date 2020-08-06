@@ -6,7 +6,7 @@ from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy.exc import IntegrityError
 
 from db.mixins import BulkIOMixin
-from db.models import User as Model
+from tests.fixtures.models import TestModel as Model
 from tests.utils import rand_email, rand_str
 
 logger = logging.getLogger(__name__)
@@ -23,12 +23,7 @@ def ids():
 @pytest.fixture
 def records(ids):
     yield [
-        {
-            "id": i,
-            "first_name": rand_str(),
-            "last_name": rand_str(),
-            "email": rand_email(min=3, max=25),
-        }
+        {"id": i, "username": rand_str(), "email": rand_email(min=3, max=25)}
         for i in ids
     ]
 
@@ -36,12 +31,7 @@ def records(ids):
 @pytest.fixture
 def records2(ids):
     yield [
-        {
-            "id": i,
-            "first_name": rand_str(),
-            "last_name": rand_str(),
-            "email": rand_email(min=3, max=25),
-        }
+        {"id": i, "username": rand_str(), "email": rand_email(min=3, max=25)}
         for i in ids
     ]
 
@@ -61,8 +51,8 @@ class TestBulkIO:
             records2, conflict_action="update", error_strategy=error_strategy
         )
 
-        results = await Model.query.gino.load((Model.id, Model.first_name)).all()
-        expected = [(d["id"], d["first_name"]) for d in records2]
+        results = await Model.query.gino.load((Model.id, Model.username)).all()
+        expected = [(d["id"], d["username"]) for d in records2]
         assert results == expected
 
     @pytest.mark.parametrize("error_strategy", ["fracture", "raise"])
@@ -75,8 +65,8 @@ class TestBulkIO:
             records2, conflict_action="ignore", error_strategy=error_strategy
         )
 
-        results = await Model.query.gino.load((Model.id, Model.first_name)).all()
-        expected = [(d["id"], d["first_name"]) for d in records]
+        results = await Model.query.gino.load((Model.id, Model.username)).all()
+        expected = [(d["id"], d["username"]) for d in records]
         assert results == expected
 
     async def test_bulk_upsert_invalid_error_strategy(self, bind, records):
@@ -88,8 +78,8 @@ class TestBulkIO:
 
         await Model.bulk_insert(records)
 
-        results = await Model.query.gino.load((Model.id, Model.first_name)).all()
-        expected = [(d["id"], d["first_name"]) for d in records]
+        results = await Model.query.gino.load((Model.id, Model.username)).all()
+        expected = [(d["id"], d["username"]) for d in records]
         assert results == expected
 
     async def test_bulk_insert_raise_integrity_error(self, bind, caplog, records):
@@ -104,12 +94,7 @@ class TestBulkIO:
         caplog.set_level(50)
 
         records.append(
-            {
-                "id": 99999999999999999999,
-                "first_name": rand_str(),
-                "last_name": rand_str(),
-                "email": rand_email(),
-            }
+            {"id": 99999999999999999999, "username": rand_str(), "email": rand_email()}
         )
         await Model.bulk_upsert(records)
 
@@ -121,12 +106,7 @@ class TestBulkIO:
         caplog.set_level(10)
 
         records.append(
-            {
-                "id": 99999999999999999999,
-                "first_name": rand_str(),
-                "last_name": rand_str(),
-                "email": rand_email(),
-            }
+            {"id": 99999999999999999999, "username": rand_str(), "email": rand_email()}
         )
         with pytest.raises(Exception):
             await Model.bulk_upsert(records, error_strategy="raise")
@@ -135,7 +115,7 @@ class TestBulkIO:
         caplog.set_level(50)
 
         with pytest.raises(Exception):
-            records = [{"first_name": rand_str()}, {}]
+            records = [{"username": rand_str()}, {}]
             await Model.bulk_upsert(records)
             assert await Model.pk.values == []
 

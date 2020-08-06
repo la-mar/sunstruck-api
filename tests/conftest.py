@@ -20,6 +20,8 @@ from sunstruck.main import app
 from util.jsontools import load_json
 import tests.utils as testutils
 
+# Import testing-only database models
+
 
 def pytest_configure(config):
     # register custom markers

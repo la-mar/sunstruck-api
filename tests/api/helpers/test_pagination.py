@@ -9,8 +9,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from api.helpers import Pagination
-from db.models import User as Model
 from schemas.user import UserOut as ModelSchema
+from tests.fixtures.models import TestModel as Model
 from tests.utils import seed_model
 
 logger = logging.getLogger(__name__)
