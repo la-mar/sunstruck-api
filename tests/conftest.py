@@ -4,7 +4,6 @@ from starlette.config import environ
 # inject environment variables prior to first import
 environ["TESTING"] = "true"
 environ["DATABASE_NAME"] = "testing"
-environ["LOG_LEVEL"] = "30"
 environ["DATABASE_ECHO"] = "false"
 
 import os

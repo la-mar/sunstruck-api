@@ -43,6 +43,7 @@ jobs:
         run: poetry install
       - name: Run tests
         env:
+          PYTHONPATH: ./:./src/sunstruck:./src:$PYTHONPATH
           CI: true
           DATABASE_NAME: testing
           DATABASE_USERNAME: testing
