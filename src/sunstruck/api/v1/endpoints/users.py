@@ -19,23 +19,20 @@ ERROR_404: Dict = dict(status_code=codes.HTTP_404_NOT_FOUND, detail="user not fo
 
 @router.get("/me", response_model=UserOut)
 async def read_users_me(current_user: ORMUser = Depends(get_current_active_user)):
+    """ Get info about the currrently signed in user. """
     return current_user
 
 
 @router.post("/", response_model=UserOut)
 async def create_user(user: UserCreateIn):
-    """
-    Create a new user.
-    """
+    """ Create a new user. """
 
     return await ORMUser.create(**user.dict())
 
 
 @router.get("/", response_model=List[UserOut])
 async def list_users(response: ORJSONResponse, pagination: Pagination = Depends()):
-    """
-    Get a list of users.
-    """
+    """ Get a list of users. """
 
     data, headers = await pagination.paginate_links(ORMUser, serializer=None)
 
@@ -46,9 +43,7 @@ async def list_users(response: ORJSONResponse, pagination: Pagination = Depends(
 
 @router.get("/{id}", response_model=UserOut)
 async def retrieve_user(id: int):
-    """
-    Get a single user.
-    """
+    """ Get a single user. """
     user: UserOut = await ORMUser.get(id)
     if not user:
         raise HTTPException(**ERROR_404)
@@ -58,9 +53,7 @@ async def retrieve_user(id: int):
 
 @router.put("/{id}", response_model=UserOut, status_code=codes.HTTP_200_OK)
 async def update_user_full(id: int, body: UserUpdateIn):
-    """
-    Overwrite a user record.
-    """
+    """ Overwrite a user record. """
     user: ORMUser = await ORMUser.get(id)
     if not user:
         raise HTTPException(**ERROR_404)
@@ -71,9 +64,7 @@ async def update_user_full(id: int, body: UserUpdateIn):
 
 @router.patch("/{id}", response_model=UserOut, status_code=codes.HTTP_200_OK)
 async def update_user_partial(id: int, body: UserUpdateIn):
-    """
-    Update specific attributes of a user.
-    """
+    """ Update specific attributes of a user. """
     user: ORMUser = await ORMUser.get(id)
     if not user:
         raise HTTPException(**ERROR_404)
@@ -84,9 +75,7 @@ async def update_user_partial(id: int, body: UserUpdateIn):
 
 @router.delete("/{id}", response_model=UserOut)
 async def delete_user(id: int):
-    """
-    Delete a user
-    """
+    """ Delete a user """
     user: ORMUser = await ORMUser.get(id)
     if not user:
         raise HTTPException(**ERROR_404)
