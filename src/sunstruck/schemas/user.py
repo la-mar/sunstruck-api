@@ -1,7 +1,8 @@
 from typing import Optional
 
-from pydantic import EmailStr
+from pydantic import EmailStr, Field, validator
 
+import util.security as security
 from schemas.bases import BaseModel, ORMBase
 
 __all__ = ["User", "UserCreateIn", "UserUpdateIn", "UserOut"]
@@ -23,13 +24,21 @@ class UserCreateIn(User):
     first_name: str
     last_name: str
     email: EmailStr
-    password: str
+    hashed_password: str = Field(..., alias="password")
+
+    @validator("hashed_password")
+    def hash_password(v: str) -> str:
+        return security.get_password_hash(v)
 
 
 class UserUpdateIn(User):
     """ Properties available to PUT/PATCH requests """
 
-    password: Optional[str] = None
+    hashed_password: Optional[str] = Field(None, alias="password")
+
+    @validator("hashed_password")
+    def hash_password(v: str) -> str:
+        return security.get_password_hash(v)
 
 
 class UserOut(ORMBase, User):

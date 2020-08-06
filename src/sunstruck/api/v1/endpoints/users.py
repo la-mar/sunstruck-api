@@ -28,7 +28,7 @@ async def create_user(user: UserCreateIn):
     Create a new user.
     """
 
-    return await ORMUser.create(**user.dict(exclude_unset=True))
+    return await ORMUser.create(**user.dict())
 
 
 @router.get("/", response_model=List[UserOut])

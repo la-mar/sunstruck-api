@@ -35,6 +35,8 @@ class User(BaseTable):
         return user
 
     @classmethod
-    def create(cls, *, password: str, **values):
-        values["hashed_password"] = get_password_hash(password)
+    def create(cls, **values):
+        password: Optional[str] = values.get("password")
+        if password:
+            values["hashed_password"] = get_password_hash(password)
         return super().create(**values)
