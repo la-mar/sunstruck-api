@@ -89,7 +89,11 @@ EMAILS_ENABLED: bool = False
 SECRET_KEY: str = secrets.token_urlsafe(32)
 
 ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 * 7  # 7 days
-EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+EMAIL_RESET_TOKEN_EXPIRE_MINUTES: int = 15
+
+MASTER_USERNAME: str = conf("MASTER_USERNAME", cast=str, default="sunstuck")
+MASTER_PASSWORD: str = conf("MASTER_PASSWORD", cast=str)
+MASTER_EMAIL: str = conf("MASTER_EMAIL", cast=str)
 
 
 def items() -> Dict:
