@@ -24,8 +24,7 @@ class TestEndpoint:
         response = await client.post(
             path,
             json={
-                "first_name": rand_str(),
-                "last_name": rand_str(),
+                "username": rand_str(),
                 "email": rand_email(),
                 "password": rand_str(),
             },
@@ -54,42 +53,31 @@ class TestEndpoint:
         name = rand_str(length=25)
         response = await client.put(
             f"{path}{id}",
-            json={
-                "first_name": name,
-                "last_name": rand_str(),
-                "email": rand_email(),
-                "password": rand_str(),
-            },
+            json={"username": name, "email": rand_email(), "password": rand_str()},
         )
         assert response.status_code == codes.HTTP_200_OK
         data = response.json()
         assert data["id"] == id
-        assert data["first_name"] == name
+        assert data["username"] == name
 
     async def test_partial_update_exising_user(self, client):
         id = 10
         name = rand_str(length=25)
         response = await client.patch(
             f"{path}{id}",
-            json={
-                "first_name": name,
-                "last_name": rand_str(),
-                "email": rand_email(),
-                "password": rand_str(),
-            },
+            json={"username": name, "email": rand_email(), "password": rand_str()},
         )
         assert response.status_code == codes.HTTP_200_OK
         data = response.json()
         assert data["id"] == id
-        assert data["first_name"] == name
+        assert data["username"] == name
 
     async def test_update_user_not_found(self, client):
         id = 99999
         response = await client.put(
             f"{path}{id}",
             json={
-                "first_name": rand_str(),
-                "last_name": rand_str(),
+                "username": rand_str(),
                 "email": rand_email(),
                 "password": rand_str(),
             },

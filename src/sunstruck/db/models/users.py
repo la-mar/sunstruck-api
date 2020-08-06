@@ -22,8 +22,8 @@ class User(BaseTable):
     hashed_password = db.Column(db.String(), nullable=False)
     uq_username = db.UniqueConstraint("username")
     uq_email = db.UniqueConstraint("email")
-    ix_username = db.Index("ix_username", "username")
-    ix_email = db.Index("ix_email", "email")
+    ix_username = db.Index(f"ix_{__tablename__}_username", "username")
+    ix_email = db.Index(f"ix_{__tablename__}_email", "email")
 
     @classmethod
     async def get_by_email(cls, email: str) -> Optional[User]:
