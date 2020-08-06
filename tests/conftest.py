@@ -21,6 +21,7 @@ from util.jsontools import load_json
 import tests.utils as testutils
 
 # Import testing-only database models
+from tests.fixtures.models import TestModel  # noqa
 
 
 def pytest_configure(config):
