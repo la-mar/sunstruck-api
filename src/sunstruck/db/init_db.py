@@ -21,7 +21,7 @@ async def create_master_user():
                 is_superuser=True,
             )
             user = await User.create(**user_data.dict(exclude_unset=True))
-            logger.warning(
+            logger.info(
                 f"Created master user: {conf.MASTER_USERNAME}/{conf.MASTER_EMAIL}"
             )
         else:
