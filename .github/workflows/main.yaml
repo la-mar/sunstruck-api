@@ -52,6 +52,8 @@ jobs:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           LOG_LEVEL: 30
+          MASTER_PASSWORD: password
+          MASTER_EMAIL: user@example.com
         run: poetry run pytest --cov src/sunstruck tests/ --cov-report xml:./coverage/python/coverage.xml --log-cli-level 10 --log-level 10
 
       - name: Upload coverage to Codecov
