@@ -73,7 +73,6 @@ class Pagination:
             model instances (if serializer is specified) or dicts (if serializer is NOT specified)
         """
         q = self.model.query
-        filter = filter if filter is not None else self.filter
 
         if filter is not None:
             if not isinstance(filter, TextClause):
@@ -97,6 +96,8 @@ class Pagination:
         filter: Optional[str] = None,
     ) -> dict:
         self.model = model
+        filter = filter if filter is not None else self.filter
+
         count = await self.model.agg.count(filter)
 
         return {

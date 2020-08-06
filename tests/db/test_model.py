@@ -188,12 +188,16 @@ class TestAggregateProxy:
         result = await Model.agg.min()
         assert result == 1
 
-    @pytest.mark.parametrize("column", Model.c.names + Model.c.columns)
+    @pytest.mark.parametrize(
+        "column", [Model.first_name, Model.last_name, "first_name", "last_name"]
+    )
     async def test_agg_max(self, bind, seed_users, column):
         result = await Model.agg.max(column)
         assert result is not None
 
-    @pytest.mark.parametrize("column", Model.c.names + Model.c.columns)
+    @pytest.mark.parametrize(
+        "column", [Model.first_name, Model.last_name, "first_name", "last_name"]
+    )
     async def test_agg_min(self, bind, seed_users, column):
         result = await Model.agg.min(column)
         assert result is not None
