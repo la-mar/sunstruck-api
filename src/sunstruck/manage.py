@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import subprocess
 import sys
@@ -9,6 +10,7 @@ import typer
 
 import config as conf
 import loggers
+from db.init_db import init_db
 
 loggers.config()
 
@@ -72,6 +74,7 @@ def recreate(args: List[str] = None):  # nocover
             logger.warning(f"Creating new database at: {short_url}")
             create_database(url)
         upgrade()
+        asyncio.run(init_db())
         logger.warning("Database recreation complete")
 
 
