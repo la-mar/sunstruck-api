@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 async def create_master_user():
 
     try:
-        user = await User.get_by_email(conf.MASTER_USERNAME)
+        user = await User.get_by_username(conf.MASTER_USERNAME)
 
         if not user:
 
