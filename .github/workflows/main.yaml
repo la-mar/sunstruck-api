@@ -52,7 +52,7 @@ jobs:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           LOG_LEVEL: 30
-        run: poetry run pytest --cov src/sunstruck tests/ --cov-report html:./coverage/coverage.html --junitxml=test-results/python/junit.xml --log-cli-level 10 --log-level 10
+        run: poetry run pytest --cov src/sunstruck tests/ --cov-report xml:./coverage/python/coverage.xml --log-cli-level 10 --log-level 10
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
