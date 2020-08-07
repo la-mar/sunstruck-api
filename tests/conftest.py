@@ -1,4 +1,5 @@
 # flake8: noqa isort:skip_file
+from typing import Dict
 from starlette.config import environ
 
 # inject environment variables prior to first import
@@ -11,14 +12,15 @@ import os
 import gino
 import pytest
 import sqlalchemy
-from async_asgi_testclient import TestClient
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 import config
+from db.init_db import create_master_user
 from db import db
 from sunstruck.main import app
 from util.jsontools import load_json
 import tests.utils as testutils
+from httpx import AsyncClient
 
 # Import testing-only database models
 from tests.fixtures.models import TestModel  # noqa
@@ -72,6 +74,7 @@ async def engine(sa_engine):
 async def bind(sa_engine):
     db.create_all(sa_engine)
     async with db.with_bind(config.DATABASE_CONFIG.url, echo=config.DATABASE_ECHO) as e:
+        await create_master_user()
         yield e
     db.drop_all(sa_engine)
 
@@ -82,8 +85,14 @@ def conf():
 
 
 @pytest.fixture
-async def client(bind) -> TestClient:
-    yield TestClient(app)
+async def client(bind):
+    async with AsyncClient(app=app, base_url="http://testserver") as client:
+        yield client
+
+
+@pytest.fixture
+async def superuser_token_headers(client: AsyncClient) -> Dict[str, str]:
+    return await testutils.get_superuser_token_headers(client)
 
 
 # --- json fixtures ---------------------------------------------------------- #

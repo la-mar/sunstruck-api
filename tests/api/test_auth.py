@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from db.models import User as Model
+from tests.fixtures.models import TestModel as Model
 from tests.utils import seed_model
 
 logger = logging.getLogger(__name__)
