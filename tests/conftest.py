@@ -1,4 +1,5 @@
 # flake8: noqa isort:skip_file
+import asyncio
 from typing import Dict
 from starlette.config import environ
 
@@ -84,19 +85,27 @@ def conf():
     yield config
 
 
-@pytest.fixture
-async def client(bind):
+@pytest.fixture(scope="session")
+def event_loop():
+    """ Event loop scope must be equivalent (or higher) in scope than any async fixture scope."""
+    loop = asyncio.get_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture(scope="module")
+async def client():
     async with AsyncClient(app=app, base_url="http://testserver") as client:
         yield client
 
 
 @pytest.fixture
-async def superuser_token_headers(client: AsyncClient) -> Dict[str, str]:
+async def superuser_token_headers(client: AsyncClient, bind) -> Dict[str, str]:
     return await testutils.get_superuser_token_headers(client)
 
 
 @pytest.fixture
-async def authorized_client(bind, superuser_token_headers):
+async def authorized_client(superuser_token_headers):
     async with AsyncClient(
         app=app, base_url="http://testserver", headers=superuser_token_headers
     ) as client:
