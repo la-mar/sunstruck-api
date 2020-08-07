@@ -15,6 +15,8 @@ from util.jsontools import ObjectEncoder, to_string
 LOG_LEVELS: Dict[str, int] = dict(logging._nameToLevel)
 LOG_LEVELS.update({str(k): k for k, v in logging._levelToName.items()})  # type: ignore
 
+logging.getLogger("gino").setLevel(logging.WARNING)
+
 
 def mlevel(level: Union[int, str]) -> int:
     """ Convert level name/int to log level integer. Borrowed from Celery, with <3 """
