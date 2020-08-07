@@ -95,6 +95,8 @@ MASTER_USERNAME: str = conf("MASTER_USERNAME", cast=str, default="sunstuck")
 MASTER_PASSWORD: str = conf("MASTER_PASSWORD", cast=str)
 MASTER_EMAIL: str = conf("MASTER_EMAIL", cast=str)
 
+API_V1: str = "/api/v1"
+
 
 def items() -> Dict:
     """ Return all configuration items as a dictionary. Only items that are fully
