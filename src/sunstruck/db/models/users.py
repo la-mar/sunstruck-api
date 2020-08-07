@@ -37,13 +37,15 @@ class User(BaseTable):
     async def get_by_email_or_username(
         cls, email_or_username: str, prefer: str = None
     ) -> Optional[User]:
-        email_coro = cls.get_by_email(email_or_username)
-        username_coro = cls.get_by_username(email_or_username)
 
         if prefer == "email":
-            result = await email_coro or await username_coro
+            result = await cls.get_by_email(
+                email_or_username
+            ) or await cls.get_by_username(email_or_username)
         else:
-            result = await username_coro or await email_coro
+            result = await cls.get_by_username(
+                email_or_username
+            ) or await cls.get_by_email(email_or_username)
 
         return result
 
