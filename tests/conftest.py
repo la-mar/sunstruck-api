@@ -93,8 +93,8 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope="module")
-async def client():
+@pytest.fixture
+async def client(bind):
     async with AsyncClient(app=app, base_url="http://testserver") as client:
         yield client
 
@@ -105,7 +105,7 @@ async def superuser_token_headers(client: AsyncClient, bind) -> Dict[str, str]:
 
 
 @pytest.fixture
-async def authorized_client(superuser_token_headers):
+async def authorized_client(bind, superuser_token_headers):
     async with AsyncClient(
         app=app, base_url="http://testserver", headers=superuser_token_headers
     ) as client:
