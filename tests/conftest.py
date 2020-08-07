@@ -95,6 +95,14 @@ async def superuser_token_headers(client: AsyncClient) -> Dict[str, str]:
     return await testutils.get_superuser_token_headers(client)
 
 
+@pytest.fixture
+async def authorized_client(bind, superuser_token_headers):
+    async with AsyncClient(
+        app=app, base_url="http://testserver", headers=superuser_token_headers
+    ) as client:
+        yield client
+
+
 # --- json fixtures ---------------------------------------------------------- #
 
 
