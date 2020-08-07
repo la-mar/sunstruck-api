@@ -170,3 +170,4 @@ and Alembic. The schema migrations produced by Alembic can be found [here](src/s
 - Convert config to Pydantic?
 - CI w/ Github Actions
 - Refactor util.jsontools to jsonlib
+- Logging config file to configure levels by logger
