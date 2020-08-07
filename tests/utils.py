@@ -1,12 +1,19 @@
 import contextlib
+import logging
 import os
 import random
+import socket
 import string
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Dict, Optional, Union
 
+from httpx import AsyncClient
+
+import config as conf
 from db.models import Model
+
+logger = logging.getLogger(__name__)
 
 
 def unpack_fixture(fixture: Any, *args, **kwargs) -> Any:
@@ -19,7 +26,6 @@ def unpack_fixture(fixture: Any, *args, **kwargs) -> Any:
 
 
 def get_open_port():
-    import socket
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))
@@ -27,6 +33,20 @@ def get_open_port():
     port = s.getsockname()[1]
     s.close()
     return port
+
+
+async def get_superuser_token_headers(client: AsyncClient) -> Dict[str, str]:
+    user_data = {
+        "username": conf.MASTER_USERNAME,
+        "password": conf.MASTER_PASSWORD,
+        #
+    }
+    response = await client.post("/api/v1/login/access-token", data=user_data)
+
+    token_data = response.json()
+    access_token = token_data["access_token"]
+
+    return {"Authorization": f"Bearer {access_token}"}
 
 
 def rand(length: int = None, min: int = None, max: int = None, choices=None):
