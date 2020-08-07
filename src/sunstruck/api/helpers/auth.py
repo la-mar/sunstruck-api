@@ -5,15 +5,14 @@ from pydantic import ValidationError
 
 import config as conf
 import util.security as security
+from config import API_V1
 from db.models import User
 from schemas import TokenPayload
 
-API_V1_STR = "/api/v1"
-
-reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{API_V1_STR}/login/access-token")
+oauth2_password = OAuth2PasswordBearer(tokenUrl=f"{API_V1}/login/access-token")
 
 
-async def get_current_user(token: str = Depends(reusable_oauth2)) -> User:
+async def get_current_user(token: str = Depends(oauth2_password)) -> User:
     try:
         payload = jwt.decode(token, conf.SECRET_KEY, algorithms=[security.ALGORITHM])
         token_data = TokenPayload(**payload)
@@ -30,7 +29,7 @@ async def get_current_user(token: str = Depends(reusable_oauth2)) -> User:
     return user
 
 
-def get_current_active_user(current_user: User = Depends(get_current_user),) -> User:
+def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     if not current_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
