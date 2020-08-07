@@ -10,7 +10,6 @@
     raise an error.
  """
 
-import secrets
 from typing import Dict
 
 import uvloop
@@ -87,8 +86,7 @@ EMAILS_ENABLED: bool = False
 
 # --- security --------------------------------------------------------------- #
 
-# SECRET_KEY: Secret = conf("SECRET_KEY", cast=Secret)
-SECRET_KEY: str = secrets.token_urlsafe(32)
+SECRET_KEY: Secret = conf("SECRET_KEY", cast=Secret)
 
 ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 * 7  # 7 days
 EMAIL_RESET_TOKEN_EXPIRE_MINUTES: int = 15
