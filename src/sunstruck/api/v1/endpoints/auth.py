@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -19,9 +20,7 @@ router = APIRouter()
 
 @router.post("/login/access-token", response_model=Token)
 async def login_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    """
-    OAuth2 compatible token login, get an access token for future requests
-    """
+    """ OAuth2 compatible token login, get an access token for future requests """
 
     user = await ORMUser.authenticate(
         email_or_username=form_data.username, password=form_data.password
@@ -47,68 +46,92 @@ async def login_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.post("/signup", response_model=UserOut)
-async def create_user_open(
+async def user_signup(
+    username: str = Body(...),
     password: str = Body(...),
     email: EmailStr = Body(...),
     first_name: str = Body(None),
     last_name: str = Body(None),
 ):
-    """
-    Create new user without the need to be logged in.
-    """
+    """ Create new user without the need to be logged in. """
+
     if not conf.USERS_OPEN_REGISTRATION:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Open signup is disabled",
+            status_code=status.HTTP_403_FORBIDDEN, detail="Signup is disabled",
         )
     user = await ORMUser.get_by_email(email)
+
     if user:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Username already exists",
+            status_code=status.HTTP_409_CONFLICT, detail="Username taken",
         )
-    user_in = UserCreateIn(
-        password=password, email=email, first_name=first_name, last_name=last_name
+
+    user_data = UserCreateIn(
+        username=username,
+        password=password,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
     )
-    user = await ORMUser.create(**user_in.dict(exclude_unset=True))
+    user = await ORMUser.create(**user_data.dict(exclude_unset=True))
     return user
 
 
 @router.post("/recover-password", response_model=Message)
-def recover_password(email: str):
-    """
-    Password Recovery
-    """
-    user = ORMUser.get_by_email(email)
+async def recover_password(
+    username: Optional[str] = Body(None), email: Optional[str] = Body(None)
+):
+    """ Password recovery """
+
+    message = "Password recovery email was sent"
+    user = await ORMUser.get_by_email(email)
 
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="The user with this username does not exist in the system.",
+        # NOTE: Avoid indicating if the user actually exists in the response
+        logger.info(
+            "Password recovery request submitted for non-existent account",
+            extra={"username": username, "email": email},
         )
-    password_reset_token = security.generate_password_reset_token(email=email)
-    security.send_reset_password_email(
-        email_to=user.email, email=email, token=password_reset_token
+        return {"message": message}
+
+    password_reset_token = security.generate_password_reset_token(
+        email=email, secret=user.hashed_password
     )
-    return {"msg": "Password recovery email sent"}
+    security.send_reset_password_email(
+        email_to=user.email,
+        email=email,
+        token=password_reset_token,
+        #
+    )
+
+    return {"message": message}
 
 
 @router.post("/reset-password", response_model=Message)
 async def reset_password(token: str = Body(...), new_password: str = Body(...)):
-    """
-    Reset password
-    """
+    """ Reset password """
     email = security.get_unverified_subject(token)
+
+    log_extras = {"email": email}
+
     if not email:
-        raise HTTPException(status_code=400, detail="Invalid token")
+        logger.info("Password reset failed: invalid token", extra=log_extras)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
 
     user = await ORMUser.get_by_email(email)
     if not user:
+        logger.info("Password reset failed: user doesn't exist", extra=log_extras)
         raise HTTPException(
-            status_code=404,
-            detail="The user with this username does not exist in the system.",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Password update failed",
         )
 
     elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        logger.info("Password reset failed: user is inactive", extra=log_extras)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Password update failed"
+        )
 
     token_content = security.verify_password_reset_token(
         token, secret=user.hashed_password
@@ -117,6 +140,10 @@ async def reset_password(token: str = Body(...), new_password: str = Body(...)):
     if token_content:
         hashed_password = security.get_password_hash(new_password)
         await user.update(hashed_password=hashed_password).apply()
-        return {"msg": "Password updated successfully"}
+        logger.info("Password reset succeeded", extra=log_extras)
+        return {"message": "Password update successful"}
     else:
-        return {"msg": "Password update failed"}
+        logger.info("Password reset failed: failed to validate token", extra=log_extras)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
