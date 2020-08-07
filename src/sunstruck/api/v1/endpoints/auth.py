@@ -12,6 +12,7 @@ from schemas import Message, Token, UserCreateIn, UserOut
 
 logger = logging.getLogger(__name__)
 
+# TODO: thorough logging on all endpoints
 
 router = APIRouter()
 
@@ -23,7 +24,7 @@ async def login_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """
 
     user = await ORMUser.authenticate(
-        email=form_data.username, password=form_data.password
+        email_or_username=form_data.username, password=form_data.password
     )
 
     if not user:
@@ -71,7 +72,7 @@ async def create_user_open(
     return user
 
 
-@router.post("/password/recover/{email}", response_model=Message)
+@router.post("/recover-password", response_model=Message)
 def recover_password(email: str):
     """
     Password Recovery
@@ -90,16 +91,16 @@ def recover_password(email: str):
     return {"msg": "Password recovery email sent"}
 
 
-@router.post("/password/reset", response_model=Message)
+@router.post("/reset-password", response_model=Message)
 async def reset_password(token: str = Body(...), new_password: str = Body(...)):
     """
     Reset password
     """
-    email = security.verify_password_reset_token(token)
+    email = security.get_unverified_subject(token)
     if not email:
         raise HTTPException(status_code=400, detail="Invalid token")
 
-    user = ORMUser.get_by_email(email)
+    user = await ORMUser.get_by_email(email)
     if not user:
         raise HTTPException(
             status_code=404,
@@ -109,8 +110,13 @@ async def reset_password(token: str = Body(...), new_password: str = Body(...)):
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    hashed_password = security.get_password_hash(new_password)
+    token_content = security.verify_password_reset_token(
+        token, secret=user.hashed_password
+    )
 
-    await user.update(hashed_password=hashed_password).apply()
-
-    return {"msg": "Password updated successfully"}
+    if token_content:
+        hashed_password = security.get_password_hash(new_password)
+        await user.update(hashed_password=hashed_password).apply()
+        return {"msg": "Password updated successfully"}
+    else:
+        return {"msg": "Password update failed"}
