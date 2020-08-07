@@ -80,7 +80,9 @@ LOG_FORMAT: str = conf("LOG_FORMAT", cast=str, default="json")
 
 # FIRST_SUPERUSER: EmailStr
 # FIRST_SUPERUSER_PASSWORD: str
-USERS_OPEN_REGISTRATION: bool = True
+USERS_OPEN_REGISTRATION: bool = conf(
+    "USERS_OPEN_REGISTRATION", cast=bool, default=False
+)
 EMAILS_ENABLED: bool = False
 
 # --- security --------------------------------------------------------------- #
