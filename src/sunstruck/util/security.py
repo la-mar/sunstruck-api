@@ -121,12 +121,16 @@ def verify_password_reset_token(token: str, secret: str = None) -> Optional[Dict
         return content
     except jwt.JWTError as e:
         using_extra_secret = secret is not None
-        logger.debug(f"{e.__class__.__name__}: {e} ({using_extra_secret=})")
+        logger.info(f"{e.__class__.__name__}: {e} ({using_extra_secret=})")
         return None
 
 
 def get_unverified_subject(token: str) -> Optional[str]:
-    return jwt.get_unverified_claims(token).get("sub")
+    try:
+        return jwt.get_unverified_claims(token).get("sub")
+    except jwt.JWTError as e:
+        logger.info(f"{e.__class__.__name__}: {e}")
+        return None
 
 
 def send_email(
