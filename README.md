@@ -20,7 +20,7 @@
 
 This is a project implementing an API to store and serve people counts measured by
 sunstruck Processing Units for consumer applications. The API is built in Python using
-FastAPI as the web framework and is backed by a Timescale Postgres database.
+FastAPI as the web framework, GINO for ORM, and is backed by a Timescale Postgres database.
 
 <br/>
 
@@ -154,9 +154,12 @@ and Alembic. The schema migrations produced by Alembic can be found [here](src/s
 - Batch POSTing endpoint
 - Implement Auth (OAuth2):
   <!-- - Password flow -->
+
   - Client Credentials flow
   - Generate/view client credentials in user profile
   - A user account can be tied to multiple client credentials
+
+  - Social login (google, twitter, github)
 
 #### Database Improvements
 
@@ -170,6 +173,14 @@ and Alembic. The schema migrations produced by Alembic can be found [here](src/s
 #### Other Improvements
 
 - Convert config to Pydantic?
-- CI w/ Github Actions
+
 - Refactor util.jsontools to jsonlib
 - Logging config file to configure levels by logger
+
+# Inspiration
+
+Many pieces of this codebase have been inspired by various projects in the FastAPI community:
+
+- [Tiangolo's Full-Stack-FastAPI-Postgresql](https://github.com/tiangolo/full-stack-fastapi-postgresql)
+- [FastAPI-React](https://github.com/Buuntu/fastapi-react)
+- [FastAPI-Contrib](https://github.com/identixone/fastapi_contrib)
