@@ -899,7 +899,7 @@ python-versions = "*"
 version = "2020.7.14"
 
 [[package]]
-category = "dev"
+category = "main"
 description = "Python HTTP for Humans."
 name = "requests"
 optional = false
@@ -1078,7 +1078,7 @@ python-versions = "*"
 version = "3.7.4.2"
 
 [[package]]
-category = "dev"
+category = "main"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 name = "urllib3"
 optional = false
@@ -1134,7 +1134,7 @@ python-versions = ">=3.6.1"
 version = "8.1"
 
 [metadata]
-content-hash = "a257421946b2f08305cb1f35b8d475ffc24fe9ae69bb91b27f0241f0deef42b5"
+content-hash = "dd8103cc82803319732e73eba533980257437166d04c98d87ee7532a3583b4d1"
 python-versions = "^3.8"
 
 [metadata.files]

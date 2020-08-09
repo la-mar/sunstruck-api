@@ -21,6 +21,7 @@ pytz = "^2020.1"
 alembic = "^1.4.2"
 attrs = "^19.3.0"
 pyparsing = "^2.4.7"
+requests = "^2.24.0"
 gino = {version = "^1.0.1", extras = ["starlette"]}
 httpx = "^0.13.3"
 pydantic = {version = "^1.6.1", extras = ["email", "dotenv"]}
