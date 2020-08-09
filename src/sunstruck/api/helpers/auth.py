@@ -16,7 +16,9 @@ oauth2_password = oauth2.OAuth2PasswordBearer(tokenUrl=f"{API_V1}/login/access-t
 
 async def get_current_user(token: str = Depends(oauth2_password)) -> User:
     try:
-        payload = jwt.decode(token, conf.SECRET_KEY, algorithms=[security.ALGORITHM])
+        payload = jwt.decode(
+            token, str(conf.SECRET_KEY), algorithms=[security.ALGORITHM]
+        )
         token_data = TokenPayload(**payload)
     except (jwt.JWTError, ValidationError):
         raise HTTPException(

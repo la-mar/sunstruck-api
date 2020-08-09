@@ -37,13 +37,13 @@ def create_access_token(
         expires_delta or timedelta(minutes=conf.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode = {"exp": expire, "sub": str(subject)}
-    secret = conf.SECRET_KEY + (secret or "")
+    secret = f"{conf.SECRET_KEY}{secret or ''}"
     encoded_jwt = jwt.encode(to_encode, secret, algorithm=ALGORITHM)
     return encoded_jwt
 
 
 def decode_token(token: str, secret: str = None) -> Dict[str, Union[str, int]]:
-    return jwt.decode(token, conf.SECRET_KEY + (secret or ""), algorithms=[ALGORITHM])
+    return jwt.decode(token, f"{conf.SECRET_KEY}{secret or ''}", algorithms=[ALGORITHM])
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -96,7 +96,7 @@ def generate_password_reset_token(
         expires_delta or timedelta(minutes=conf.EMAIL_RESET_TOKEN_EXPIRE_MINUTES)
     )
     content = {"exp": expire, "nbf": now, "sub": email}
-    secret = conf.SECRET_KEY + (secret or "")
+    secret = f"{conf.SECRET_KEY}{secret or ''}"
 
     return jwt.encode(content, secret, algorithm=ALGORITHM)
 
