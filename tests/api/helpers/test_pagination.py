@@ -59,6 +59,23 @@ async def seed_users(bind):
     await seed_model(Model, 30)
 
 
+class TestCustomizedPagination:
+    async def test_override_default(self):
+        class CustomPagination(Pagination):
+            default_limit = 3
+
+        app = FastAPI()
+
+        @app.get("/")
+        async def pager(pagination: CustomPagination = Depends()):
+            response = await pagination.paginate(Model, serializer=ModelSchema)
+            return response
+
+        async with TestClient(app) as client:
+            response = await client.get("/")
+            assert len(response.json()["data"]) == 3
+
+
 class TestPaginationResponse:
     @pytest.mark.parametrize(
         "path,expected_record_count",

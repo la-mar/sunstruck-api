@@ -15,22 +15,59 @@ logger = logging.getLogger(__name__)
 LINK_TEMPLATE = '<{url}>; rel="{rel}"'
 
 
-class Pagination:
+class PaginationMeta(type):
+    # ref: https://stackoverflow.com/questions/34781840/using-new-to-override-init-in-subclass
+    # https://github.com/identixone/fastapi_contrib/blob/master/fastapi_contrib/pagination.py
+    def __new__(meta, name, bases, namespace, *args, **kwargs):
+        cls = super(PaginationMeta, meta).__new__(meta, name, bases, namespace)
+        init_ref = cls.__init__
+
+        def __init__(
+            self,
+            request: Request,
+            offset: int = Query(
+                default=cls.default_offset,
+                ge=0,
+                description="Offset the results returned by this number.",
+            ),
+            limit: int = Query(
+                default=cls.default_limit,
+                ge=-1,
+                le=cls.max_limit,
+                description="Limit the number of results returned to this number.",
+            ),
+            filter: str = Query(
+                default=None,
+                description="Provide a SQL-type predicate to filter the results",
+            ),
+            sort: str = Query(default="", description="Field to sort the results by."),
+            desc: bool = Query(
+                default=True,
+                description="Results should be sorted in descending order.",
+            ),
+        ):
+            init_ref(self, request, offset, limit, filter, sort, desc)
+
+        cls.__init__ = __init__
+        return cls
+
+
+class Pagination(metaclass=PaginationMeta):
     """ Paging dependency for endpoints """
 
     default_offset = 0
     default_limit = 25
-    max_offset = None
-    max_limit = 1000
+    max_limit: int = 1000
+    default_filter: Optional[str] = None
 
     def __init__(
         self,
         request: Request,
-        offset: int = Query(default=default_offset, ge=0, le=max_offset),
-        limit: int = Query(default=default_limit, ge=-1, le=max_limit),
-        filter: str = Query(default=None, description=""),
-        sort: str = Query(default=""),
-        desc: bool = Query(default=True),
+        offset: int = 0,
+        limit: int = 0,
+        filter: str = "",
+        sort: str = "",
+        desc: bool = True,
     ):
 
         self.request = request
