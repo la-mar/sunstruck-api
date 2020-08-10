@@ -18,9 +18,20 @@
 
 # About
 
-This is a project implementing an API to store and serve people counts measured by
-sunstruck Processing Units for consumer applications. The API is built in Python using
-FastAPI as the web framework, GINO for ORM, and is backed by a Timescale Postgres database.
+This is a generic application that is built with the intention of providing a thoughtfully
+designed, detailed, and approachable example of an API implementation using FastAPI. This project
+focuses on demonstrating tangible solutions for the functionality most often needed when
+implementing a new API, with the goal of providing the members of the Python and FastAPI
+communities with yet another reference point for enhancing their own implementations.
+
+Here are a few quick facts about what you'll find in this project:
+
+- [FastAPI](https://github.com/tiangolo/fastapi): Web Framework
+- [Gino](https://github.com/python-gino/gino): Async SQL ORM
+- [TimescaleDB](https://github.com/timescale/timescaledb): Timescale (Postgres) database
+
+- Authentication with OAuth2: Both password and client_credentials flows are implemented.
+  - See the [auth helpers](./src/sunstruck/api/helpers/auth.py#L15-L95) and [access-token endpoint](./src/sunstruck/api/v1/endpoints.auth.py#L28-L61#)
 
 <br/>
 
@@ -60,6 +71,10 @@ LOG_LEVEL=20
 LOG_FORMAT=simple
 DEBUG=false
 SECRET_KEY=local
+
+# master account credentials
+MASTER_EMAIL=user@example.com
+MASTER_PASSWORD=password
 
 # for timescaledb container
 POSTGRES_USER=sunstruck
@@ -160,6 +175,8 @@ and Alembic. The schema migrations produced by Alembic can be found [here](src/s
   - A user account can be tied to multiple client credentials
 
   - Social login (google, twitter, github)
+  - More intuitive pagination
+    - Can the response be modified from inside the dependency (e.g. adding headers)?
 
 #### Database Improvements
 
