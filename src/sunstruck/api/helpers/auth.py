@@ -53,43 +53,6 @@ oauth2_authorizer = OAuth2PasswordClientCredentials(
 )
 
 
-async def get_current_user(token: str = Depends(oauth2_authorizer)) -> User:
-    try:
-        payload = jwt.decode(
-            token, str(conf.SECRET_KEY), algorithms=[security.ALGORITHM]
-        )
-        token_data = TokenPayload(**payload)
-    except (jwt.JWTError, ValidationError):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Could not validate credentials",
-        )
-    user = await User.get(token_data.sub)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
-    return user
-
-
-def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
-    if not current_user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
-        )
-    return current_user
-
-
-def get_current_active_superuser(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=400, detail="The user doesn't have enough privileges"
-        )
-    return current_user
-
-
 class OAuth2RequestForm:
     """
     Dependency copied from fastapi.security.OAuth2RequestForm and modified to
@@ -131,28 +94,38 @@ class OAuth2RequestForm:
         self.client_secret = client_secret
 
 
-class OAuth2ClientRequestForm:
-    # ref: https://github.com/tiangolo/fastapi/blob/da9b5201c4a021b04bb3a59247c5b9a57a8c3144/fastapi/security/oauth2.py#L13  # noqa
+async def get_current_user(token: str = Depends(oauth2_authorizer)) -> User:
+    try:
+        payload = jwt.decode(
+            token, str(conf.SECRET_KEY), algorithms=[security.ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+    except (jwt.JWTError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate credentials",
+        )
+    user = await User.get(token_data.sub)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    return user
 
-    """ Dependency to inject OAuth2 Client Credentials fields into an endpoint.
 
-    Keyword Arguments:
-        grant_type {str} -- OAuth2 grant_type (default: Form(None, regex="client_credentials"))
-        scope {str} -- space separated scope identifier.
-            e.g. "resource:read resource2:write profile" (default: Form(""))
-        client_id {Optional[str]} -- OAuth2 client_id (default: Form(...))
-        client_secret {Optional[str]} -- OAuth2 client_secret (default: Form(...))
-    """
+def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
+        )
+    return current_user
 
-    def __init__(
-        self,
-        grant_type: str = Form(None, regex="client_credentials"),
-        scope: str = Form(""),
-        client_id: Optional[str] = Form(...),
-        client_secret: Optional[str] = Form(...),
-    ):
 
-        self.grant_type = grant_type
-        self.scopes = scope.split()
-        self.client_id = client_id
-        self.client_secret = client_secret
+def get_current_active_superuser(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=400, detail="The user doesn't have enough privileges"
+        )
+    return current_user
