@@ -28,7 +28,7 @@ Here are a few quick facts about what you'll find in this project:
 
 - [FastAPI](https://github.com/tiangolo/fastapi): Web Framework
 - [Gino](https://github.com/python-gino/gino): Async SQL ORM
-- [TimescaleDB](https://github.com/timescale/timescaledb): Timescale (Postgres) database
+- [TimescaleDB](https://github.com/timescale/timescaledb): Timescale (Postgres) database -[Typer](https://github.com/tiangolo/typer) & [Click](https://github.com/pallets/click): CLI implementation
 
 - Authentication with OAuth2: Both password and client_credentials flows are implemented.
   - See the [auth helpers](./src/sunstruck/api/helpers/auth.py#L15-L95) and [access-token endpoint](./src/sunstruck/api/v1/endpoints.auth.py#L28-L61#)
@@ -88,10 +88,11 @@ POSTGRES_PASSWORD=password
 2. Install the project dependencies defined in [pyproject.toml](pyproject.toml): `poetry install`
 3. Source your .env file if your IDE/terminal doesn't do so automatically: `source .env`
 4. Optional: Populate the database with sample data [sample data](docs/data): `poetry run seed_db`
-5. Launch the application and its supporting components: `docker-compose up`
+5. Launch the application and its supporting components: `docker-compose up`.
+   - By default, the app will be served at [http://0.0.0.0:8000](http://0.0.0.0:8000).
 
 - If you need to startover with a clean database, you can generate a fresh one by
-  running `make recreate-and-seed-db`.
+  running `sunstruck db recreate && seed_db` or `make recreate-and-seed-db`.
 
 ### Commands
 
@@ -102,10 +103,19 @@ Several frequently needed and useful commands are captured in the [Makefile](Mak
 You can verify you have installed the project by running:
 
 ```sh
-sunstruck --help
-```
+>>> sunstruck --help
+Usage: sunstruck [OPTIONS] COMMAND [ARGS]...
 
-![CLI](docs/assets/cli.png)
+  sunstruck API
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  db      Database Management
+  routes  List api routes
+  run     Execution procedures
+```
 
 <br/>
 
@@ -125,6 +135,7 @@ sunstruck run web
 ```sh
 # Information Display Commands
 sunstruck routes
+
 ```
 
 ```sh
