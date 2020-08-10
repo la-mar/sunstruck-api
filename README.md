@@ -30,7 +30,7 @@ Here are a few quick facts about what you'll find in this project:
 - [Gino](https://github.com/python-gino/gino): Async SQL ORM
 - [TimescaleDB](https://github.com/timescale/timescaledb): Timescale (Postgres) database -[Typer](https://github.com/tiangolo/typer) & [Click](https://github.com/pallets/click): CLI implementation
 
-- Authentication with OAuth2: Both password and client_credentials flows are implemented.
+- Authentication with OAuth2+JWT: Both password and client_credentials flows are implemented.
   - See [auth helpers](./src/sunstruck/api/helpers/auth.py#L15-L95) and the [access-token endpoint](./src/sunstruck/api/v1/endpoints.auth.py#L28-L61#)
 
 <br/>
