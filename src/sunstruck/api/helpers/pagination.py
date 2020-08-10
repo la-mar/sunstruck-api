@@ -29,21 +29,29 @@ class PaginationMeta(type):
                 default=cls.default_offset,
                 ge=0,
                 description="Offset the results returned by this number.",
+                example="offset=45",
             ),
             limit: int = Query(
                 default=cls.default_limit,
                 ge=-1,
                 le=cls.max_limit,
                 description="Limit the number of results returned to this number.",
+                example="limit=50",
             ),
             filter: str = Query(
                 default=None,
                 description="Provide a SQL-type predicate to filter the results",
+                example="field_name<=10",
             ),
-            sort: str = Query(default="", description="Field to sort the results by."),
+            sort: str = Query(
+                default="",
+                description="Field to sort the results by.",
+                example="sort=id",
+            ),
             desc: bool = Query(
                 default=True,
                 description="Results should be sorted in descending order.",
+                example="desc=false",
             ),
         ):
             init_ref(self, request, offset, limit, filter, sort, desc)
