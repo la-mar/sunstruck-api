@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy.orm import relationship
+
 from db.models.bases import BaseTable, db
 from util.security import get_password_hash, verify_password
 
@@ -24,6 +26,7 @@ class User(BaseTable):
     uq_email = db.UniqueConstraint("email")
     ix_username = db.Index(f"ix_{__tablename__}_username", "username")
     ix_email = db.Index(f"ix_{__tablename__}_email", "email")
+    oauth2_clients = relationship("OAuth2Client", back_populates="owner_id")
 
     @classmethod
     async def get_by_email(cls, email: str) -> Optional[User]:
@@ -62,7 +65,7 @@ class User(BaseTable):
 
     @classmethod
     def create(cls, **values):
-        password: Optional[str] = values.get("password")
+        password: Optional[str] = values.pop("password", None)
         if password:
             values["hashed_password"] = get_password_hash(password)
         return super().create(**values)

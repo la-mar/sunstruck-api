@@ -1,6 +1,5 @@
 # flake8: noqa isort:skip_file
 import asyncio
-from typing import Dict
 from starlette.config import environ
 
 # inject environment variables prior to first import
@@ -95,21 +94,47 @@ def event_loop():
 
 @pytest.fixture
 async def client(bind):
+    """ Create a test client connected to the main app instance. """
+
+    # http://testserver is an httpx "magic" url that tells the client to query the
+    # given app instance.
     async with AsyncClient(app=app, base_url="http://testserver") as client:
         yield client
 
 
 @pytest.fixture
-async def superuser_token_headers(client: AsyncClient, bind) -> Dict[str, str]:
-    return await testutils.get_superuser_token_headers(client)
+async def superuser_token_headers(client: AsyncClient, bind):
+    """ Authenticate with the client's app instance and return an Authorization
+        header with a populated Bearer token. """
+
+    user_data = {
+        "grant_type": "password",
+        "username": config.MASTER_USERNAME,
+        "password": config.MASTER_PASSWORD,
+    }
+
+    response = await client.post(f"{config.API_V1}/login/access-token", data=user_data)
+
+    token_data = response.json()
+    access_token = token_data["access_token"]
+
+    yield {"Authorization": f"Bearer {access_token}"}
 
 
 @pytest.fixture
 async def authorized_client(bind, superuser_token_headers):
+    """ Create a test client that is authenticated using the master username/password"""
+
     async with AsyncClient(
         app=app, base_url="http://testserver", headers=superuser_token_headers
     ) as client:
         yield client
+
+
+@pytest.fixture
+async def client_credentials(authorized_client):
+    """ Create a new set of client credentials for the master account """
+    yield await client.post(f"{config.API_V1}/credentials")
 
 
 # --- json fixtures ---------------------------------------------------------- #

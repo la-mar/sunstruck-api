@@ -39,17 +39,17 @@ class PaginationMeta(type):
                 example="limit=50",
             ),
             filter: str = Query(
-                default=None,
+                default=cls.default_filter,
                 description="Provide a SQL-type predicate to filter the results",
                 example="field_name<=10",
             ),
             sort: str = Query(
-                default="",
+                default=cls.default_sort,
                 description="Field to sort the results by.",
                 example="sort=id",
             ),
             desc: bool = Query(
-                default=True,
+                default=cls.default_desc,
                 description="Results should be sorted in descending order.",
                 example="desc=false",
             ),
@@ -67,6 +67,8 @@ class Pagination(metaclass=PaginationMeta):
     default_limit = 25
     max_limit: int = 1000
     default_filter: Optional[str] = None
+    default_sort: str = ""
+    default_desc: bool = True
 
     def __init__(
         self,
