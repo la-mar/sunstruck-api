@@ -35,7 +35,7 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - sunstruck-api-pgdata:/var/lib/postgresql/data/pgdata
-  # db_migration:
+  # db_migration:  # enable to automatically run database migrations on startup
   #   <<: *defaults
   #   container_name: sunstruck_db_migrations
   #   restart: "no"
