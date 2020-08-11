@@ -33,10 +33,12 @@ class PaginationMeta(type):
             return response
 
 
+    ### References:
+    - https://stackoverflow.com/questions/34781840/using-new-to-override-init-in-subclass
+    - https://github.com/identixone/fastapi_contrib/blob/master/fastapi_contrib/pagination.py
+
     """
 
-    # ref: https://stackoverflow.com/questions/34781840/using-new-to-override-init-in-subclass
-    # https://github.com/identixone/fastapi_contrib/blob/master/fastapi_contrib/pagination.py
     def __new__(meta, name, bases, namespace, *args, **kwargs):
         cls = super(PaginationMeta, meta).__new__(meta, name, bases, namespace)
         init_ref = cls.__init__

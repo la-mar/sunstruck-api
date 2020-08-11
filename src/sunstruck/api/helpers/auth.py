@@ -16,7 +16,9 @@ class OAuth2PasswordClientCredentials(oauth2.OAuth2):
     """ Authenticate with OAuth2 Password flow (username/password) OR Client Credentials
         (client_id/client_secret).
 
-    fastapi ref: https://github.com/tiangolo/fastapi/blob/master/fastapi/security/oauth2.py
+        ### References:
+        - https://github.com/tiangolo/fastapi/blob/master/fastapi/security/oauth2.py
+
      """
 
     def __init__(
@@ -60,8 +62,6 @@ class OAuth2RequestForm:
     accept username/password and client_id/client_secret for authentication; however,
     the grant_type must be specified.
 
-    fastapi ref: https://github.com/tiangolo/fastapi/blob/master/fastapi/security/oauth2.py
-
     The dependency creates the following Form request parameters in your endpoint:
 
     grant_type {str} -- OAuth2 flow: "password" or "client_credentials"
@@ -73,6 +73,8 @@ class OAuth2RequestForm:
     client_id {Optional[str]} -- client id for authentication (default: Form(None))
     client_secret {Optional[str]} -- client secret for authentication (default: Form(None))
 
+    ### References:
+    - https://github.com/tiangolo/fastapi/blob/master/fastapi/security/oauth2.py
 
     """
 
