@@ -90,8 +90,17 @@ class Pagination(metaclass=PaginationMeta):
         self.model: Model = None
 
     def get_next_url(self, count: int) -> Optional[str]:
+        """ Generate a URI to the next page of the queried resource, if it exists.
+
+        Returns:
+            Optional[str] -- string URL or None (e.g. http://example.com/?limit=10&offset=30)
+        """
+
         if self.offset + self.limit >= count or self.limit <= 0:
+            #  Currently on last page of results, or no limit is in effect.
             return None
+
+        #  ADD the current offset to limit to build the url for the next page
         return str(
             self.request.url.include_query_params(
                 limit=self.limit, offset=self.offset + self.limit
@@ -99,12 +108,21 @@ class Pagination(metaclass=PaginationMeta):
         )
 
     def get_previous_url(self) -> Optional[str]:
+        """ Generate a URI to the previous page of the queried resource, if it exists.
+
+        Returns:
+            Optional[str] -- string URL or None (e.g. http://example.com/?limit=10&offset=10)
+        """
+
         if self.offset <= 0:
+            #  No offset is in effect
             return None
 
         if self.offset - self.limit <= 0:
+            #  Currently on first page of results
             return str(self.request.url.remove_query_params(keys=["offset"]))
 
+        #  SUBTRACT the current offset from limit to build the url for the previous page
         return str(
             self.request.url.include_query_params(
                 limit=self.limit, offset=self.offset - self.limit
@@ -142,6 +160,31 @@ class Pagination(metaclass=PaginationMeta):
         serializer: Optional[PydanticModel] = None,
         filter: Optional[str] = None,
     ) -> dict:
+        """ Create a paginated response body with prev/next links and total count
+            added to body's root.  The records fulfilling the paginated query are
+            placed under the "data" key.
+
+            Example:
+            {
+                "count": 50,
+                "next": "http://example.com/?limit=10&offset=30",
+                "prev": "http://example.com/?limit=10&offset=10",
+                "data": {...},
+            }
+
+
+        Arguments:
+            model {Model} -- SQLAlchemy data model or equivalent
+
+        Keyword Arguments:
+            serializer {Optional[PydanticModel]} -- Pydantic model to use when
+                serializing the resulting records. (default: None)
+            filter {Optional[str]} -- filter to apply to the SQL query
+                (e.g. id<15 and created_at=2020-01-01).  (default: {None})
+
+        Returns:
+            dict -- response body with embedded pagination parameters
+        """
         self.model = model
         filter = filter if filter is not None else self.filter
 
@@ -162,8 +205,25 @@ class Pagination(metaclass=PaginationMeta):
     ) -> Tuple[List[Union[Dict, PydanticModel]], Dict[str, Union[int, List]]]:
         """ Paginate using link headers
 
+        Example:
+        (
+            [
+                {"id": 20, "name": "bob", "created_at": "1975-08-11T20:16:11.337408+00:00"},
+                ...
+                {"id": 29, "name": "steve", "created_at": "1932-05-18T05:03:55.094191+00:00"},
+            ],
+            {
+                "x-total-count": 50,
+                "link": [
+                    '<http://example.com/?limit=10&offset=10>; rel="prev"',
+                    '<http://example.com/?limit=10&offset=30>; rel="next"'
+                ]
+            }
+        )
+
+
         Arguments:
-            model {Model} -- SQLAlchemy data model
+            model {Model} -- SQLAlchemy data model or equivalent
 
         Keyword Arguments:
             serializer {Optional[PydanticModel]} -- [description] (default: {None})
@@ -173,6 +233,8 @@ class Pagination(metaclass=PaginationMeta):
         Returns:
             Tuple[List[Union[Dict, PydanticModel]], Dict[str, Union[int, List]]] --
                 Tuple of data and headers
+
+
         """
         p = await self.paginate(model=model, serializer=serializer, filter=filter)
         headers = {
@@ -181,9 +243,11 @@ class Pagination(metaclass=PaginationMeta):
         }
 
         if p["prev"] is not None:
+            #  Add previous URL to link header
             headers["link"].append(LINK_TEMPLATE.format(url=p["prev"], rel="prev"))
 
         if p["next"] is not None:
+            #  Add next URL to link header
             headers["link"].append(LINK_TEMPLATE.format(url=p["next"], rel="next"))
 
         return p["data"], headers
