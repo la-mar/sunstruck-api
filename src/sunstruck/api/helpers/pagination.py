@@ -16,6 +16,25 @@ LINK_TEMPLATE = '<{url}>; rel="{rel}"'
 
 
 class PaginationMeta(type):
+    """ Pagination dependency metaclass to enable easy extension of default
+        (class level) parameters.
+
+
+    Example:
+
+    >>> class CustomPagination(Pagination):
+            default_limit = 3  # override default_limit
+
+    >>> app = FastAPI()
+
+    >>> @app.get("/")
+        async def pager(pagination: CustomPagination = Depends()):
+            response = await pagination.paginate(Model, serializer=ModelSchema)
+            return response
+
+
+    """
+
     # ref: https://stackoverflow.com/questions/34781840/using-new-to-override-init-in-subclass
     # https://github.com/identixone/fastapi_contrib/blob/master/fastapi_contrib/pagination.py
     def __new__(meta, name, bases, namespace, *args, **kwargs):
