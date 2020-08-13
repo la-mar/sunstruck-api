@@ -7,12 +7,13 @@ import pandas as pd
 urlparse.parse_qs("filter=field:ge:7:lt:10")
 
 regex = r"""
-        (?:\?filter=)?
-        (?P<field_name>[:|]?\w*)?
+        # (?:\?filter=)?
+        (?P<conjunctive>[:|]?)
+        (?P<field_name>[:|]?\w+[^:|'\"])?
         (?P<sep>[:|])
         (?P<inverter>~)?
         (?P<operator>eq|gte|gt|lte|lt|in|between|regex|like)
-        (?=:(?:
+        (?=:(?P<value>
         (?P<quoted>['\"][^'\"\\]*(?:\\.[^'\\]*)*['\"])
         |
         (?:(?P<unquoted>[^:|\s]*[^'\":|\s]))
