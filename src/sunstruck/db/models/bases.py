@@ -142,7 +142,7 @@ class ColumnProxy:
 
         return self.dict()[item]
 
-    def dict(self) -> Dict:
+    def dict(self) -> Dict[str, Column]:
         return dict(self.sa_obj)
 
     @property
