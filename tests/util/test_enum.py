@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from util.enums import Enum, to_lower_enum
+from util.enums import Enum
 
 
 class Sparkling(str, Enum):
@@ -53,18 +53,6 @@ class TestEnum:
             Sparkling.WATERLOO,
             Sparkling.LACROIX,
         ]
-
-
-@pytest.mark.parametrize(
-    "value,expected",
-    [
-        ("topo chico", Sparkling.TOPO),
-        ("WaterLOO", Sparkling.WATERLOO),
-        ("LACROIX", Sparkling.LACROIX),
-    ],
-)
-def test_to_lower_enum(value, expected):
-    assert to_lower_enum(value, Sparkling) == expected
 
 
 @pytest.mark.parametrize(
