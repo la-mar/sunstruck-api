@@ -178,19 +178,24 @@ and Alembic. The schema migrations produced by Alembic can be found [here](src/s
 #### API Improvements
 
 - Batch POSTing endpoint
-- Implement Auth (OAuth2):
-  <!-- - Password flow -->
 
-  - Client Credentials flow
   - Generate/view client credentials in user profile
-  - A user account can be tied to multiple client credentials
+  - A user account can be tied to multiple client credentials (max 10)
 
   - Social login (google, twitter, github)
   - More intuitive pagination
     - Can the response be modified from inside the dependency (e.g. adding headers)?
+  - Filtering abstraction
+
+- Rate Limiting
+
+- Cache headers
+
+- Field selection parameters
 
 #### Database Improvements
 
+- Migrate to sqlalchemy 1.4/2.0
 - Add Row Level Security / Row Ownership
 
 #### Testing Improvements
