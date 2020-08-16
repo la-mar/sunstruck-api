@@ -210,6 +210,8 @@ and Alembic. The schema migrations produced by Alembic can be found [here](src/s
 - Refactor util.jsontools to jsonlib
 - Logging config file to configure levels by logger
 
+- Add Grafana container
+
 # Inspiration
 
 Many pieces of this codebase have been inspired by various projects in the FastAPI community:
