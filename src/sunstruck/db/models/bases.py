@@ -1,45 +1,64 @@
-""" Bases for sqlalchemy data models """
+""" Bases for sqlalchemy data models
+
+    ref: SQLAlchemy 1.4+ migration (https://docs.sqlalchemy.org/en/14/changelog/migration_14.html#behavioral-changes-orm)
+
+"""  # noqa
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
-from gino.dialects.asyncpg import JSONB
-from sqlalchemy import Column
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.dialects.postgresql.dml import Insert
-from sqlalchemy.schema import Constraint, PrimaryKeyConstraint
-from sqlalchemy.sql.base import ImmutableColumnCollection
-from sqlalchemy.sql.elements import TextClause
-from sqlalchemy.sql.functions import Function
-from sqlalchemy_utils import ChoiceType, EmailType, URLType
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.asyncio.engine import create_async_engine
+from sqlalchemy.ext.declarative import as_declarative
+from sqlalchemy.schema import Constraint
+from sqlalchemy.sql.schema import MetaData, Table
 
 import util
 import util.jsontools
-from db import db
-from db.mixins import BulkIOMixin
+from db.mixins import BulkIOMixin, CrudMixin
+from db.proxies import ColumnProxy, PrimaryKeyProxy, QueryProxy
 from util.deco import classproperty
-from util.dt import utcnow
 
-db.JSONB, db.UUID, db.EmailType, db.URLType, db.ChoiceType = (
-    JSONB,
-    UUID,
-    EmailType,
-    URLType,
-    ChoiceType,
-)
+# from sqlalchemy_utils import ChoiceType, EmailType, URLType
 
 
-class Base(db.Model, BulkIOMixin):
+# db.JSONB, db.UUID, db.EmailType, db.URLType, db.ChoiceType = (
+#     JSONB,
+#     UUID,
+#     EmailType,
+#     URLType,
+#     ChoiceType,
+# )
+
+
+@as_declarative()
+class Model(CrudMixin, BulkIOMixin):
     """ Data model base class """
 
-    __abstract__ = True
+    # __abstract__ = True
+    __table__: Table
+    metadata: MetaData
+
     _columns: Optional[ColumnProxy] = None
-    _agg: Optional[AggregateProxy] = None
+    # _agg: Optional[AggregateProxy] = None
     _pk: Optional[PrimaryKeyProxy] = None
+    _query: Optional[QueryProxy] = None
 
     def __repr__(self):
         return util.jsontools.make_repr(self)
+
+    def __iter__(self) -> Generator:
+        for item in self.dict().items():
+            yield item
+
+    @classproperty
+    def __model_name__(cls) -> str:
+        return f"{cls.__module__}.{cls.__name__}"
+
+    @classproperty
+    def constraints(cls) -> Dict[str, Constraint]:
+        return {str(x.name): x for x in list(cls.__table__.constraints)}
 
     @classproperty
     def c(cls) -> ColumnProxy:
@@ -51,11 +70,16 @@ class Base(db.Model, BulkIOMixin):
             cls._columns = ColumnProxy(cls)
         return cls._columns
 
-    @classproperty
-    def agg(cls) -> AggregateProxy:
-        if not cls._agg:
-            cls._agg = AggregateProxy(cls)
-        return cls._agg
+    def dict(self) -> Dict[str, Any]:
+        # sqlalchemy 1.4+ returns named tuples instead of mappings by default
+        # ref: https://docs.sqlalchemy.org/en/14/changelog/migration_14.html#behavioral-changes-orm
+        return {col: getattr(self, col) for col in self.c.names}
+
+    # @classproperty
+    # def agg(cls) -> AggregateProxy:
+    #     if not cls._agg:
+    #         cls._agg = AggregateProxy(cls)
+    #     return cls._agg
 
     @classproperty
     def pk(cls) -> PrimaryKeyProxy:
@@ -63,231 +87,124 @@ class Base(db.Model, BulkIOMixin):
             cls._pk = PrimaryKeyProxy(cls)
         return cls._pk
 
-    @classproperty
-    def __model_name__(cls) -> str:
-        return f"{cls.__module__}.{cls.__name__}"
+    # @classproperty
+    # def query(cls) -> QueryProxy:
+    #     if not cls._query:
+    #         cls._query = QueryProxy(cls)
+    #     return cls._query
 
-    @classproperty
-    def constraints(cls) -> Dict[str, Constraint]:
-        return {x.name: x for x in list(cls.__table__.constraints)}
+    # @classmethod
+    # async def merge(cls, constraint: Union[str, Constraint] = None, **values) -> Base:
+    #     """ Upsert the given record.
 
-    @classmethod
-    async def merge(cls, constraint: Union[str, Constraint] = None, **values) -> Base:
-        """ Upsert the given record.
+    #     Keyword Arguments:
+    #         constraint {Union[str, Constraint]} -- the constraint to use
+    #             to identify conflicting records. If not specified, the table's
+    #             primary key is used (default: None)
 
-        Keyword Arguments:
-            constraint {Union[str, Constraint]} -- the constraint to use
-                to identify conflicting records. If not specified, the table's
-                primary key is used (default: None)
+    #     Returns:
+    #         Base -- the updated model instance
+    #     """
 
-        Returns:
-            Base -- the updated model instance
-        """
+    #     if isinstance(constraint, PrimaryKeyProxy) or constraint is None:
+    #         constraint = cls.__table__.primary_key
 
-        if isinstance(constraint, PrimaryKeyProxy) or constraint is None:
-            constraint = cls.__table__.primary_key
+    #     if isinstance(constraint, str):
+    #         constraint = cls.constraints[constraint]
 
-        if isinstance(constraint, str):
-            constraint = cls.constraints[constraint]
+    #     set_cols = [
+    #         c.name
+    #         for c in cls.columns
+    #         if c not in cls.pk and c not in list(constraint.columns)
+    #     ]
+    #     stmt: Insert = Insert(cls).values(values).returning(*cls.columns)
 
-        set_cols = [
-            c.name
-            for c in cls.columns
-            if c not in cls.pk and c not in list(constraint.columns)
-        ]
-        stmt: Insert = Insert(cls).values(values).returning(*cls.columns)
+    #     update_set: Dict = {k: getattr(stmt.excluded, k) for k in set_cols}
+    #     stmt = stmt.on_conflict_do_update(
+    #         constraint=constraint,
+    #         set_=update_set
+    #         #
+    #     )
 
-        update_set: Dict = {k: getattr(stmt.excluded, k) for k in set_cols}
-        stmt = stmt.on_conflict_do_update(
-            constraint=constraint,
-            set_=update_set
-            #
-        )
-
-        results = await stmt.gino.load(cls).all()
-        return util.reduce(results)
+    #     results = await stmt.gino.load(cls).all()
+    #     return util.reduce(results)
 
 
-class BaseTable(Base, BulkIOMixin):
-    created_at = db.Column(
-        db.DateTime(timezone=True), default=utcnow, server_default=db.func.now(),
-    )
-    updated_at = db.Column(
-        db.DateTime(timezone=True),
-        default=utcnow,
-        onupdate=utcnow,
-        server_default=db.func.now(),
-        index=True,
-    )
+if __name__ == "__main__":
+    import config as conf
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy import select, and_
 
+    class User(Model):
+        __tablename__ = "users2"
+        id = Column(Integer, primary_key=True, autoincrement=True)
+        username = Column(String(50), primary_key=True)
 
-class ColumnProxy:
-    """ Proxy object for a data model's columns """
+    dir(User)
 
-    def __init__(self, model: Base):
-        self.model = model
+    dir(User.__table__)
 
-    def __iter__(self):
-        for col in self.columns:
-            yield col
+    engine = create_async_engine(conf.DATABASE_CONFIG.url, echo=True)
+    session = AsyncSession(engine, future=True)
 
-    def __repr__(self):
-        return util.jsontools.make_repr(self.names)
+    async def wrapper():
 
-    def __getitem__(self, item):
-        try:  # item is int
-            return self.columns[item]
-        except TypeError:  # item is not int
-            pass
+        async with engine.begin() as conn:
+            await conn.run_sync(Model.metadata.drop_all)
+            await conn.run_sync(Model.metadata.create_all)
 
-        return self.dict()[item]
+        session = AsyncSession(engine, future=True)
+        for x in range(1, 6):
+            user = User(username=f"test-{x}")
+            session.add(user)
+        await session.commit()
 
-    def dict(self) -> Dict[str, Column]:
-        return dict(self.sa_obj)
+        # selecting columns returns tuples
+        stmt = select(*User.pk)
+        result = await session.execute(stmt)
+        rows: List[Tuple[int, str]] = result.all()
+        row: Tuple[int, str] = rows[0]
+        rows
+        row
 
-    @property
-    def sa_obj(self) -> ImmutableColumnCollection:
-        """ Reference to the underlying sqlalchemy object """
-        return self.model.__table__.c
+        # selecting the model returns model objects
+        stmt = select(User)
+        result = await session.execute(stmt)
+        rows: List[User] = result.scalars().all()
+        row: User = rows[0]
+        rows
+        dir(row)
+        row
 
-    @property
-    def columns(self) -> List[Column]:
-        return list(self.sa_obj)
+        import pandas as pd
 
-    @property
-    def names(self) -> List[str]:
-        return [x.name for x in self.columns]
+        pd.DataFrame(rows, columns=User.pk.names)
 
-    @property
-    def pytypes(self) -> Dict[str, Any]:
-        """ Return a mapping of the model's field names to Python types.
+        # await User.pk.values
 
-        Example:
-        >>> model.columns.pytypes
-        >>> {"id": int, "name": str}
+        # returns tuple
+        stmt = User.select().where(User.id == 1)
+        user: Tuple = (await session.execute(stmt)).one()
 
-        Returns:
-            Dict[str, Any]
-        """
-        dtypes = {}
-        for col in self.columns:
-            dtypes[col.name] = col.type.python_type
+        # returns model instance
+        stmt = select(User).where(User.id == 1)
+        user: User = (await session.execute(stmt)).scalar()
 
-        return dtypes
+        # returns model instance
+        stmt = User.select()
+        user: User = (await session.execute(stmt)).scalar()
 
-    @property
-    def dtypes(self) -> Dict[str, Any]:
-        """ Return a mapping of the model's field names to SQL column types.
+        predicate = and_(*[col == getattr(user, col.name) for col in user.pk])
 
-        Example:
-        >>> model.columns.dtypes
-        >>> {'id': BigInteger(), 'first_name': String(length=100)}
+        # stmt = User.select().where(predicate)
+        stmt = User.__table__.update().where(predicate).values(username="autoupdate")
+        await session.execute(stmt)
+        await session.commit()
 
-        Returns:
-            Dict[str, Any]
-        """
-        dtypes = {}
-        for col in self.columns:
-            dtypes[col.name] = col.type
+        user.username = "updated"
+        await session.commit()
 
-        return dtypes
+        user: User = await User.get(id=3, username="test-3")
 
-
-class PrimaryKeyProxy(ColumnProxy):
-    """ Proxy object for a data model's primary key attributes """
-
-    def dict(self) -> Dict:
-        return dict(self.sa_obj.columns)
-
-    @property
-    def sa_obj(self) -> PrimaryKeyConstraint:
-        """ Reference to the underlying sqlalchemy object """
-        return self.model.__table__.primary_key
-
-    @property
-    def columns(self) -> List[Column]:
-        return list(self.sa_obj.columns)
-
-    @property
-    async def values(self) -> Union[List[Any]]:
-        values = await self.model.select(*self.names).gino.all()
-        if len(values) > 0:
-            if len(values[0]) == 1:
-                values = [v[0] for v in values]
-        return values
-
-
-class AggregateProxy:
-    """ Proxy object for invoking aggregate queries against a model's underlying data """
-
-    def __init__(self, model: Base):
-        self.model: Base = model
-
-    def __repr__(self):
-        return f"AggregateProxy: {self.model.__module__}"
-
-    @property
-    def _pk(self) -> PrimaryKeyProxy:
-        return self.model.pk
-
-    @property
-    def _c(self) -> ColumnProxy:
-        return self.model.c
-
-    @property
-    def default_column(self) -> Column:
-        return self._pk[0] if len(list(self._pk)) > 0 else self._c[0]
-
-    def ensure_column(self, column: Union[str, Column] = None) -> Column:
-        if isinstance(column, str):
-            column = self._c[column]
-        elif column is None:
-            column = self.default_column
-        return column
-
-    # TODO: test with and without filter
-    async def agg(
-        self,
-        funcs: Union[Function, List[Function]],
-        filter: Union[str, TextClause] = None,
-    ) -> Dict[str, Union[int, float]]:
-        func_map: Dict[str, Function] = {f.name: f for f in util.ensure_list(funcs)}
-
-        q = db.select(func_map.values())
-
-        if filter is not None:
-            if not isinstance(filter, TextClause):
-                filter = db.text(filter)
-            q = q.where(filter)
-
-        results: List = await q.gino.one()
-
-        return dict(zip(func_map, results))
-
-    async def count(self, filter: Union[str, TextClause] = None) -> int:
-        """ Get the model's rowcount """
-
-        result = await self.agg(db.func.count(self.default_column), filter=filter)
-        return util.reduce(result.values())
-
-    async def max(
-        self, column: Union[str, Column] = None, filter: Union[str, TextClause] = None
-    ) -> int:
-        """ Get the maximum value of the given column.  If no column is specified,
-            the max value of the first primary key column is returned.
-        """
-
-        func: Function = db.func.max(self.ensure_column(column))
-        result = await self.agg(func, filter=filter)
-        return util.reduce(result.values())
-
-    async def min(
-        self, column: Union[str, Column] = None, filter: Union[str, TextClause] = None
-    ) -> int:
-        """ Get the minimum value of the given column.  If no column is specified,
-            the min value of the first primary key column is returned.
-        """
-
-        func: Function = db.func.min(self.ensure_column(column))
-        result = await self.agg(func, filter=filter)
-        return util.reduce(result.values())
+        str(user.scoped_predicate().compile())
+        str(User.scoped_predicate(id=3, username="test-3").compile())

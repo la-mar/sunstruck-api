@@ -5,21 +5,256 @@ import asyncio
 import functools
 import logging
 from timeit import default_timer as timer
-from typing import Callable, Coroutine, Dict, List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Coroutine,
+    Dict,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+)
 
+import sqlalchemy as sa
 from asyncpg.exceptions import DataError, UniqueViolationError
 from sqlalchemy.dialects.postgresql.dml import Insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.schema import Constraint
 from sqlalchemy.sql.base import Executable
+from sqlalchemy.sql.elements import BooleanClauseList
+from sqlalchemy.sql.selectable import Select
 
 import config as conf
 import util
+from db import db
+
+if TYPE_CHECKING:
+    from db.models.bases import Model  # noqa
 
 logger = logging.getLogger(__name__)
 
 
-class BulkIOMixin(object):
+class SQLAlchemyMixins:
+    """ Make frequently needed SQLAlchemy imports available on an API or Model instance
+        without negatively impacting static analysis (e.g. typing, code completion).
+    """
+
+    alias = sa.alias
+    all_ = sa.all_
+    and_ = sa.and_
+    any_ = sa.any_
+    asc = sa.asc
+    between = sa.between
+    BigInteger = sa.BigInteger
+    bindparam = sa.bindparam
+    BLANK_SCHEMA = sa.BLANK_SCHEMA
+    Boolean = sa.Boolean
+    case = sa.case
+    cast = sa.cast
+    CheckConstraint = sa.CheckConstraint
+    collate = sa.collate
+    column = sa.column
+    Column = sa.Column
+    ColumnDefault = sa.ColumnDefault
+    Constraint = sa.Constraint
+    Date = sa.Date
+    DateTime = sa.DateTime
+    DDL = sa.DDL
+    DefaultClause = sa.DefaultClause
+    delete = sa.delete
+    desc = sa.desc
+    distinct = sa.distinct
+    Enum = sa.Enum
+    except_ = sa.except_
+    except_all = sa.except_all
+    exists = sa.exists
+    extract = sa.extract
+    false = sa.false
+    FetchedValue = sa.FetchedValue
+    Float = sa.Float
+    ForeignKey = sa.ForeignKey
+    ForeignKeyConstraint = sa.ForeignKeyConstraint
+    func = sa.func
+    funcfilter = sa.funcfilter
+    Index = sa.Index
+    insert = sa.insert
+    inspect = sa.inspect
+    Integer = sa.Integer
+    intersect = sa.intersect
+    intersect_all = sa.intersect_all
+    Interval = sa.Interval
+    join = sa.join
+    JSON = sa.JSON
+    LargeBinary = sa.LargeBinary
+    lateral = sa.lateral
+    literal = sa.literal
+    literal_column = sa.literal_column
+    MetaData = sa.MetaData
+    modifier = sa.modifier
+    not_ = sa.not_
+    null = sa.null
+    Numeric = sa.Numeric
+    or_ = sa.or_
+    outerjoin = sa.outerjoin
+    outparam = sa.outparam
+    over = sa.over
+    PickleType = sa.PickleType
+    PrimaryKeyConstraint = sa.PrimaryKeyConstraint
+    select = sa.select
+    Sequence = sa.Sequence
+    SmallInteger = sa.SmallInteger
+    String = sa.String
+    subquery = sa.subquery
+    table = sa.table
+    Table = sa.Table
+    tablesample = sa.tablesample
+    text = sa.text
+    Text = sa.Text
+    ThreadLocalMetaData = sa.ThreadLocalMetaData
+    Time = sa.Time
+    true = sa.true
+    tuple_ = sa.tuple_
+    type_coerce = sa.type_coerce
+    TypeDecorator = sa.TypeDecorator
+    Unicode = sa.Unicode
+    UnicodeText = sa.UnicodeText
+    union = sa.union
+    union_all = sa.union_all
+    UniqueConstraint = sa.UniqueConstraint
+    update = sa.update
+    within_group = sa.within_group
+
+
+# https://www.python.org/dev/peps/pep-0484/#annotating-instance-and-class-methods
+M = TypeVar("M", bound="Model")
+
+
+class ScopedPredicate:
+    """
+
+    References:
+    ---
+    - https://docs.python.org/3/howto/descriptor.html#descriptor-example
+    """
+
+    def __get__(self, obj: M, objtype: Type[M]) -> Callable:
+        def select(**kwargs) -> BooleanClauseList:
+            if obj is not None:
+                # if object instance, dump to dict
+                kwargs = obj.dict()
+
+            return sa.and_(*[col == kwargs[col.name] for col in objtype.pk])
+
+        return select
+
+
+class CrudMixin:
+
+    scoped_predicate = ScopedPredicate()
+
+    @classmethod
+    def select(cls: M, *args) -> Select:
+        """ Return a select query for the calling model's underlying table.  If columns
+            are explicitly passed in args, those columns will be used to generate the
+            select statment.  If no args are passed, the query will use all columns
+            defined in the model.
+
+        Parameters
+        ----------
+        *args: One or more SQLAlchemy columns
+
+        Returns
+        -------
+        Select
+            SQLALchemy select statement
+        """
+
+        return sa.select(*args) if args else sa.select(cls)
+
+    @classmethod
+    def create(cls: M, **kwargs) -> M:
+        pass
+
+    async def update(self: M) -> M:
+        # async with db.Session() as session:
+        #     async with session.begin():
+        #         stmt = (
+        #             User.__table__.update()
+        #             .where(self._scoped_predicate(self))
+        #             .values(username="autoupdate")
+        #         )
+        #         await session.execute(stmt)
+        #         await session.commit()
+
+        pass
+
+    def delete(self: M) -> M:
+        pass
+
+    @classmethod
+    async def get(cls: M, **kwargs) -> M:
+        """ Fetch an instance of the model for matching the given primary key.
+
+        Returns
+        -------
+        M
+            a model instance
+
+        Raises
+        ------
+        ValueError
+            incorrect or incomplete primary key passed
+        """
+
+        if {*cls.pk.names} != {*kwargs}:
+            raise ValueError(
+                f"Provided primary keys do not match. Expected {cls.pk.names}, got {list(kwargs)}."
+            )
+
+        stmt = cls.select().where(cls._scoped_predicate(**kwargs))
+        async with db.Session() as session:
+            return (await session.execute(stmt)).scalar()
+
+    @classmethod
+    def _scoped_predicate(cls: M, instance: M = None, /, **kwargs) -> BooleanClauseList:
+        """ Construct a where clause targeting the database row backing this model
+            instance based on the model's primary keys.
+
+            The predicate can be formed by passing passing either a model instance
+            or keyword arguments for each of the model's primary keys.
+
+            Example w/ instance:
+            >>> model_instance = MyModel(id=1, name="example")
+            >>> predicate = MyModel._scoped_predicate(model_instance)
+
+            >>> predicate
+            >>> <sqlalchemy.sql.elements.BooleanClauseList object at 0x113db5d90>
+
+            >>> str(predicate.compile())  # preview the statement
+            >>> 'mytable.id = :id_1 AND mytable.name = :name_1'
+
+
+            Example w/ kwargs:
+            >>> predicate = MyModel._scoped_predicate(id=1, name="example")
+
+            >>> predicate
+            >>> <sqlalchemy.sql.elements.BooleanClauseList object at 0x113db5d90>
+
+            >>> str(predicate.compile())  # preview the statement
+            >>> 'mytable.id = :id_1 AND mytable.name = :name_1'
+
+        """
+
+        if instance is not None:
+            # if object instance, dump to dict
+            kwargs = instance.dict()
+
+        return sa.and_(*[col == kwargs[col.name] for col in cls.pk])
+
+
+class BulkIOMixin:
     """ DML operations optimized for large datasets """
 
     @classmethod

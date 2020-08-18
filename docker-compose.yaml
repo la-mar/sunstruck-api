@@ -17,12 +17,12 @@ x-defaults: &defaults
     - ./src/sunstruck:/app/sunstruck
 
 services:
-  web:
-    <<: *defaults
-    container_name: sunstruck_web
-    command: sunstruck run dev --host 0.0.0.0 --port 8000
-    ports:
-      - 8000:8000
+  # web:
+  #   <<: *defaults
+  #   container_name: sunstruck_web
+  #   command: sunstruck run dev --host 0.0.0.0 --port 8000
+  #   ports:
+  #     - 8000:8000
   postgres:
     image: timescale/timescaledb:latest-pg12
     container_name: sunstruck_postgres
