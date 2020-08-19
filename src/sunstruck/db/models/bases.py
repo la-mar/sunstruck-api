@@ -134,6 +134,7 @@ if __name__ == "__main__":
     import config as conf
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy import select, and_
+    from db import db  # noqa
 
     class User(Model):
         __tablename__ = "users2"
@@ -153,11 +154,11 @@ if __name__ == "__main__":
             await conn.run_sync(Model.metadata.drop_all)
             await conn.run_sync(Model.metadata.create_all)
 
-        session = AsyncSession(engine, future=True)
-        for x in range(1, 6):
-            user = User(username=f"test-{x}")
-            session.add(user)
-        await session.commit()
+        async with db.Session() as session:
+            async with session.begin():
+                for x in range(1, 6):
+                    user = User(username=f"test-{x}")
+                    session.add(user)
 
         # selecting columns returns tuples
         stmt = select(*User.pk)
@@ -204,7 +205,23 @@ if __name__ == "__main__":
         user.username = "updated"
         await session.commit()
 
-        user: User = await User.get(id=3, username="test-3")
+        user: User = await User.get(id=6, username="test")
 
-        str(user.scoped_predicate().compile())
-        str(User.scoped_predicate(id=3, username="test-3").compile())
+        user
+
+        self = user
+
+        import sqlalchemy as sa
+
+        kwargs = dict(username="test-10")
+
+        result = None
+        async with db.Session() as session:
+            async with session.begin():
+                stmt = sa.insert(self.__class__).returning(*self.c).values(**kwargs)
+                result = (await session.execute(stmt)).one()
+        result
+
+        user = await User.create(**kwargs)
+
+        User(**user._mapping)

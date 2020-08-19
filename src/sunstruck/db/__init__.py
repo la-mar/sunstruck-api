@@ -19,12 +19,6 @@ import config as conf
 logger = logging.getLogger(__name__)
 
 
-# dir(engine)
-
-# async with engine.connect() as conn:
-#     print(dir(conn))
-
-
 # TODO: request-local sessions
 #   - https://docs.sqlalchemy.org/en/14/orm/contextual.html#unitofwork-contextual
 #   - https://github.com/encode/starlette/issues/420

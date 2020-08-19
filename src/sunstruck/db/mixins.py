@@ -20,6 +20,7 @@ from typing import (
 import sqlalchemy as sa
 from asyncpg.exceptions import DataError, UniqueViolationError
 from sqlalchemy.dialects.postgresql.dml import Insert
+from sqlalchemy.engine import Result, Row
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.schema import Constraint
 from sqlalchemy.sql.base import Executable
@@ -132,11 +133,16 @@ M = TypeVar("M", bound="Model")
 
 
 class ScopedPredicate:
-    """
+    """ Construct a where clause targeting the database row backing this model
+        instance based on the model's primary keys.
+
+        The predicate can be formed by passing passing either a model instance
+        or keyword arguments for each of the model's primary keys.
 
     References:
     ---
     - https://docs.python.org/3/howto/descriptor.html#descriptor-example
+
     """
 
     def __get__(self, obj: M, objtype: Type[M]) -> Callable:
@@ -152,7 +158,41 @@ class ScopedPredicate:
 
 class CrudMixin:
 
+    """ Construct a where clause targeting the database row backing this model
+        instance based on the model's primary keys.
+
+        The predicate can be formed by passing passing either a model instance
+        or keyword arguments for each of the model's primary keys.
+
+        Example w/ instance:
+        >>> model_instance = MyModel(id=1, name="example")
+        >>> predicate = MyModel._scoped_predicate(model_instance)
+
+        >>> predicate
+        >>> <sqlalchemy.sql.elements.BooleanClauseList object at 0x113db5d90>
+
+        >>> str(predicate.compile())  # preview the statement
+        >>> 'mytable.id = :id_1 AND mytable.name = :name_1'
+
+
+        Example w/ kwargs:
+        >>> predicate = MyModel._scoped_predicate(id=1, name="example")
+
+        >>> predicate
+        >>> <sqlalchemy.sql.elements.BooleanClauseList object at 0x113db5d90>
+
+        >>> str(predicate.compile())  # preview the statement
+        >>> 'mytable.id = :id_1 AND mytable.name = :name_1'
+
+    """
+
     scoped_predicate = ScopedPredicate()
+
+    @classmethod
+    def row_to_instance(cls, row: Row) -> M:
+
+        # TODO: Error handing
+        return cls(**row)
 
     @classmethod
     def select(cls: M, *args) -> Select:
@@ -174,24 +214,43 @@ class CrudMixin:
         return sa.select(*args) if args else sa.select(cls)
 
     @classmethod
-    def create(cls: M, **kwargs) -> M:
-        pass
+    async def create(cls: M, **kwargs) -> M:
+        result: Result
+        async with db.Session() as session:
+            async with session.begin():
+                stmt = sa.insert(cls).returning(*cls.c).values(**kwargs)
+                result = await session.execute(stmt)
 
-    async def update(self: M) -> M:
-        # async with db.Session() as session:
-        #     async with session.begin():
-        #         stmt = (
-        #             User.__table__.update()
-        #             .where(self._scoped_predicate(self))
-        #             .values(username="autoupdate")
-        #         )
-        #         await session.execute(stmt)
-        #         await session.commit()
+        return cls.row_to_instance(result.one())
 
-        pass
+    async def update(self: M, **kwargs) -> M:
 
-    def delete(self: M) -> M:
-        pass
+        result: Result
+        async with db.Session() as session:
+            async with session.begin():
+                stmt = (
+                    sa.update(self.__class__)
+                    .returning(*self.c)
+                    .where(self.scoped_predicate())
+                    .values(**kwargs)
+                )
+                result = await session.execute(stmt)
+
+        return self.row_to_instance(result.one())
+
+    async def delete(self: M) -> M:
+
+        result: Result
+        async with db.Session() as session:
+            async with session.begin():
+                stmt = (
+                    sa.delete(self.__class__)
+                    .returning(*self.c)
+                    .where(self.scoped_predicate())
+                )
+                result = await session.execute(stmt)
+
+        return self.row_to_instance(result.one())
 
     @classmethod
     async def get(cls: M, **kwargs) -> M:
@@ -208,50 +267,20 @@ class CrudMixin:
             incorrect or incomplete primary key passed
         """
 
+        # a builtin .get() is available on the sqlalchemy 1.4+ sync session API,
+        # but is missing on AsyncSession.  Adding note here to check if this is
+        # remedied later in the beta or in the 2.0 release.
+        # ref: https://docs.sqlalchemy.org/en/14/orm/session_api.html#sqlalchemy.orm.Session.get
+
         if {*cls.pk.names} != {*kwargs}:
             raise ValueError(
                 f"Provided primary keys do not match. Expected {cls.pk.names}, got {list(kwargs)}."
             )
 
-        stmt = cls.select().where(cls._scoped_predicate(**kwargs))
+        stmt = cls.select().where(cls.scoped_predicate(**kwargs))
         async with db.Session() as session:
+            # unsure why this returns a model instance but other sa methods dont
             return (await session.execute(stmt)).scalar()
-
-    @classmethod
-    def _scoped_predicate(cls: M, instance: M = None, /, **kwargs) -> BooleanClauseList:
-        """ Construct a where clause targeting the database row backing this model
-            instance based on the model's primary keys.
-
-            The predicate can be formed by passing passing either a model instance
-            or keyword arguments for each of the model's primary keys.
-
-            Example w/ instance:
-            >>> model_instance = MyModel(id=1, name="example")
-            >>> predicate = MyModel._scoped_predicate(model_instance)
-
-            >>> predicate
-            >>> <sqlalchemy.sql.elements.BooleanClauseList object at 0x113db5d90>
-
-            >>> str(predicate.compile())  # preview the statement
-            >>> 'mytable.id = :id_1 AND mytable.name = :name_1'
-
-
-            Example w/ kwargs:
-            >>> predicate = MyModel._scoped_predicate(id=1, name="example")
-
-            >>> predicate
-            >>> <sqlalchemy.sql.elements.BooleanClauseList object at 0x113db5d90>
-
-            >>> str(predicate.compile())  # preview the statement
-            >>> 'mytable.id = :id_1 AND mytable.name = :name_1'
-
-        """
-
-        if instance is not None:
-            # if object instance, dump to dict
-            kwargs = instance.dict()
-
-        return sa.and_(*[col == kwargs[col.name] for col in cls.pk])
 
 
 class BulkIOMixin:
