@@ -190,6 +190,18 @@ class CrudMixin:
 
     @classmethod
     def row_to_instance(cls, row: Row) -> M:
+        """ Convert a sqlalchemy Row object into a model instance.
+
+        Parameters
+        ----------
+        row : Row
+            sqlalchemy.engine.Row object
+
+        Returns
+        -------
+        M
+            model instance
+        """
 
         # TODO: Error handing
         return cls(**row)
@@ -215,6 +227,15 @@ class CrudMixin:
 
     @classmethod
     async def create(cls: M, **kwargs) -> M:
+        """ Create a new record in this model's table and return the new record
+            as an instance of this model.
+
+        Parameters
+        ----------
+        kwargs
+            keyword arguments corresponding to the model's attributes
+
+        """
         result: Result
         async with db.Session() as session:
             async with session.begin():
@@ -239,6 +260,7 @@ class CrudMixin:
         return self.row_to_instance(result.one())
 
     async def delete(self: M) -> M:
+        """ Delete the record represented by this instance from the database. """
 
         result: Result
         async with db.Session() as session:
@@ -265,6 +287,7 @@ class CrudMixin:
         ------
         ValueError
             incorrect or incomplete primary key passed
+
         """
 
         # a builtin .get() is available on the sqlalchemy 1.4+ sync session API,
