@@ -24,8 +24,99 @@ logger = logging.getLogger(__name__)
 #   - https://github.com/encode/starlette/issues/420
 
 
-class Database:
-    """ API between SQLAlchemy and the calling application """
+class SQLAlchemyProps:
+    """ Make frequently needed SQLAlchemy imports available on an API or Model instance
+        without negatively impacting static analysis (e.g. typing, code completion).
+    """
+
+    alias = sa.alias
+    all_ = sa.all_
+    and_ = sa.and_
+    any_ = sa.any_
+    asc = sa.asc
+    between = sa.between
+    BigInteger = sa.BigInteger
+    bindparam = sa.bindparam
+    BLANK_SCHEMA = sa.BLANK_SCHEMA
+    Boolean = sa.Boolean
+    case = sa.case
+    cast = sa.cast
+    CheckConstraint = sa.CheckConstraint
+    collate = sa.collate
+    column = sa.column
+    Column = sa.Column
+    ColumnDefault = sa.ColumnDefault
+    Constraint = sa.Constraint
+    Date = sa.Date
+    DateTime = sa.DateTime
+    DDL = sa.DDL
+    DefaultClause = sa.DefaultClause
+    delete = sa.delete
+    desc = sa.desc
+    distinct = sa.distinct
+    Enum = sa.Enum
+    except_ = sa.except_
+    except_all = sa.except_all
+    exists = sa.exists
+    extract = sa.extract
+    false = sa.false
+    FetchedValue = sa.FetchedValue
+    Float = sa.Float
+    ForeignKey = sa.ForeignKey
+    ForeignKeyConstraint = sa.ForeignKeyConstraint
+    func = sa.func
+    funcfilter = sa.funcfilter
+    Index = sa.Index
+    insert = sa.insert
+    inspect = sa.inspect
+    Integer = sa.Integer
+    intersect = sa.intersect
+    intersect_all = sa.intersect_all
+    Interval = sa.Interval
+    join = sa.join
+    JSON = sa.JSON
+    LargeBinary = sa.LargeBinary
+    lateral = sa.lateral
+    literal = sa.literal
+    literal_column = sa.literal_column
+    MetaData = sa.MetaData
+    modifier = sa.modifier
+    not_ = sa.not_
+    null = sa.null
+    Numeric = sa.Numeric
+    or_ = sa.or_
+    outerjoin = sa.outerjoin
+    outparam = sa.outparam
+    over = sa.over
+    PickleType = sa.PickleType
+    PrimaryKeyConstraint = sa.PrimaryKeyConstraint
+    select = sa.select
+    Sequence = sa.Sequence
+    SmallInteger = sa.SmallInteger
+    String = sa.String
+    subquery = sa.subquery
+    table = sa.table
+    Table = sa.Table
+    tablesample = sa.tablesample
+    text = sa.text
+    Text = sa.Text
+    ThreadLocalMetaData = sa.ThreadLocalMetaData
+    Time = sa.Time
+    true = sa.true
+    tuple_ = sa.tuple_
+    type_coerce = sa.type_coerce
+    TypeDecorator = sa.TypeDecorator
+    Unicode = sa.Unicode
+    UnicodeText = sa.UnicodeText
+    union = sa.union
+    union_all = sa.union_all
+    UniqueConstraint = sa.UniqueConstraint
+    update = sa.update
+    within_group = sa.within_group
+
+
+class Database(SQLAlchemyProps):
+    """ Global API between SQLAlchemy and the calling application """
 
     _url: URL
 
