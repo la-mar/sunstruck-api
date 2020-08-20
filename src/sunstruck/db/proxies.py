@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from sqlalchemy import Column
 from sqlalchemy.schema import PrimaryKeyConstraint
@@ -10,6 +10,7 @@ from sqlalchemy.sql.base import ImmutableColumnCollection
 
 import util
 import util.jsontools
+from db import db
 
 if TYPE_CHECKING:
     from db.models.bases import Model
@@ -26,9 +27,6 @@ class QueryProxy(ProxyBase):
 
 class ColumnProxy(ProxyBase):
     """ Proxy object for a data model's columns """
-
-    def __init__(self, model: Model):
-        self.model: Model = model
 
     def __iter__(self):
         for col in self.columns:
@@ -112,12 +110,14 @@ class PrimaryKeyProxy(ColumnProxy):
         return list(self.sa_obj.columns)
 
     @property
-    async def values(self) -> Union[List[Any]]:
-        values = (await self.model.select(*self.names)).scalars.all()
-        if len(values) > 0:
-            if len(values[0]) == 1:
-                values = [v[0] for v in values]
-        return values
+    async def values(self) -> List[Any]:
+
+        values: List
+        async with db.Session() as session:
+            async with session.begin():
+                values = (await session.execute(self.model.select(*self.columns))).all()
+
+        return [util.reduce(v) for v in values]
 
 
 # class AggregateProxy(ProxyBase):
