@@ -17,19 +17,8 @@ from sqlalchemy.sql.schema import MetaData, Table
 import util
 import util.jsontools
 from db.mixins import BulkIOMixin, CrudMixin
-from db.proxies import ColumnProxy, PrimaryKeyProxy, QueryProxy
+from db.proxies import AggregateProxy, ColumnProxy, PrimaryKeyProxy, QueryProxy
 from util.deco import classproperty
-
-# from sqlalchemy_utils import ChoiceType, EmailType, URLType
-
-
-# db.JSONB, db.UUID, db.EmailType, db.URLType, db.ChoiceType = (
-#     JSONB,
-#     UUID,
-#     EmailType,
-#     URLType,
-#     ChoiceType,
-# )
 
 
 @as_declarative()
@@ -41,7 +30,7 @@ class Model(CrudMixin, BulkIOMixin):
     metadata: MetaData
 
     _columns: Optional[ColumnProxy] = None
-    # _agg: Optional[AggregateProxy] = None
+    _agg: Optional[AggregateProxy] = None
     _pk: Optional[PrimaryKeyProxy] = None
     _query: Optional[QueryProxy] = None
 
@@ -75,11 +64,11 @@ class Model(CrudMixin, BulkIOMixin):
         # ref: https://docs.sqlalchemy.org/en/14/changelog/migration_14.html#behavioral-changes-orm
         return {col: getattr(self, col) for col in self.c.names}
 
-    # @classproperty
-    # def agg(cls) -> AggregateProxy:
-    #     if not cls._agg:
-    #         cls._agg = AggregateProxy(cls)
-    #     return cls._agg
+    @classproperty
+    def agg(cls) -> AggregateProxy:
+        if not cls._agg:
+            cls._agg = AggregateProxy(cls)
+        return cls._agg
 
     @classproperty
     def pk(cls) -> PrimaryKeyProxy:
@@ -133,6 +122,7 @@ class Model(CrudMixin, BulkIOMixin):
 if __name__ == "__main__":
     import config as conf
     from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.engine import Result, Row  # type: ignore  # noqa
     from sqlalchemy import select, and_
     from db import db  # noqa
 
@@ -188,7 +178,7 @@ if __name__ == "__main__":
         user: Tuple = (await session.execute(stmt)).one()
 
         # returns model instance
-        stmt = select(User).where(User.id == 1)
+        stmt = select(User).where(User.id == 8)
         user: User = (await session.execute(stmt)).scalar()
 
         # returns model instance
@@ -215,7 +205,7 @@ if __name__ == "__main__":
 
         kwargs = dict(username="test-10")
 
-        result = None
+        result: Row
         async with db.Session() as session:
             async with session.begin():
                 stmt = sa.insert(self.__class__).returning(*self.c).values(**kwargs)
@@ -225,3 +215,27 @@ if __name__ == "__main__":
         user = await User.create(**kwargs)
 
         User(**user._mapping)
+
+        self = user
+
+        stmt = User.select(db.func.count())
+        async with db.Session() as session:
+            async with session.begin():
+                print(await session.execute(User.select(db.func.min(User.id)))).one()
+
+        self = User.agg
+
+        await User.agg.count(filter="id < 10")
+
+        # TODO: add binary expression to tests
+        await User.agg.count(filter=User.id < 10)
+
+        # TODO: add multi-expression agg to list
+        await User.agg.agg(
+            [
+                db.func.min(User.id),
+                db.func.max(User.id),
+                db.func.avg(User.id),
+                #
+            ]
+        )

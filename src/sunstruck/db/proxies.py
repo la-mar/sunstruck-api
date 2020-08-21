@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Union
 
-from sqlalchemy import Column
+from sqlalchemy import Column, text
 from sqlalchemy.schema import PrimaryKeyConstraint
 from sqlalchemy.sql.base import ImmutableColumnCollection
+from sqlalchemy.sql.elements import BinaryExpression, TextClause
+from sqlalchemy.sql.functions import Function
 
 import util
 import util.jsontools
@@ -120,77 +122,85 @@ class PrimaryKeyProxy(ColumnProxy):
         return [util.reduce(v) for v in values]
 
 
-# class AggregateProxy(ProxyBase):
-#     """ Proxy object for invoking aggregate queries against a model's underlying data """
+class AggregateProxy(ProxyBase):
+    """ Proxy object for invoking aggregate queries against a model's underlying data """
 
-#     def __init__(self, model: Model):
-#         self.model: Model = model
+    def __init__(self, model: Model):
+        self.model: Model = model
 
-#     def __repr__(self):
-#         return f"AggregateProxy: {self.model.__module__}"
+    def __repr__(self):
+        return f"AggregateProxy: {self.model.__module__}"
 
-#     @property
-#     def _pk(self) -> PrimaryKeyProxy:
-#         return self.model.pk
+    @property
+    def _pk(self) -> PrimaryKeyProxy:
+        return self.model.pk
 
-#     @property
-#     def _c(self) -> ColumnProxy:
-#         return self.model.c
+    @property
+    def _c(self) -> ColumnProxy:
+        return self.model.c
 
-#     @property
-#     def default_column(self) -> Column:
-#         return self._pk[0] if len(list(self._pk)) > 0 else self._c[0]
+    @property
+    def default_column(self) -> Column:
+        return self._pk[0] if len(list(self._pk)) > 0 else self._c[0]
 
-#     def ensure_column(self, column: Union[str, Column] = None) -> Column:
-#         if isinstance(column, str):
-#             column = self._c[column]
-#         elif column is None:
-#             column = self.default_column
-#         return column
+    def ensure_column(self, column: Union[str, Column] = None) -> Column:
+        col: Column
+        if isinstance(column, str):
+            col = self._c[column]
+        elif column is None:
+            col = self.default_column
+        else:
+            raise ValueError(
+                f"No column named '{column}' on {self.model.__name__} model"
+            )
+        return col
 
-#     # TODO: test with and without filter
-#     async def agg(
-#         self,
-#         funcs: Union[Function, List[Function]],
-#         filter: Union[str, TextClause] = None,
-#     ) -> Dict[str, Union[int, float]]:
-#         func_map: Dict[str, Function] = {f.name: f for f in util.ensure_list(funcs)}
+    # TODO: test with and without filter
+    async def agg(
+        self,
+        funcs: Union[Function, List[Function]],
+        filter: Union[str, TextClause, BinaryExpression] = None,
+    ) -> Dict[str, Union[int, float]]:
+        func_map: Dict[str, Function] = {f.name: f for f in util.ensure_list(funcs)}
 
-#         q = db.select(func_map.values())
+        stmt = self.model.select(*func_map.values())
 
-#         if filter is not None:
-#             if not isinstance(filter, TextClause):
-#                 filter = db.text(filter)
-#             q = q.where(filter)
+        if filter is not None:
+            if not isinstance(filter, (TextClause, BinaryExpression)):
+                filter = text(filter)
+            stmt = stmt.where(filter)
 
-#         results: List = await q.gino.one()
+        result: db.Row
+        async with db.Session() as session:
+            async with session.begin():
+                result = (await session.execute(stmt)).one()
 
-#         return dict(zip(func_map, results))
+        return dict(zip(func_map, result))
 
-#     async def count(self, filter: Union[str, TextClause] = None) -> int:
-#         """ Get the model's rowcount """
+    async def count(self, filter: Union[str, TextClause] = None) -> int:
+        """ Get the model's rowcount """
 
-#         result = await self.agg(db.func.count(self.default_column), filter=filter)
-#         return util.reduce(result.values())
+        result = await self.agg(db.func.count(self.default_column), filter=filter)
+        return util.reduce(result.values())
 
-#     async def max(
-#         self, column: Union[str, Column] = None, filter: Union[str, TextClause] = None
-#     ) -> int:
-#         """ Get the maximum value of the given column.  If no column is specified,
-#             the max value of the first primary key column is returned.
-#         """
+    async def max(
+        self, column: Union[str, Column] = None, filter: Union[str, TextClause] = None
+    ) -> int:
+        """ Get the maximum value of the given column.  If no column is specified,
+            the max value of the first primary key column is returned.
+        """
 
-#         func: Function = db.func.max(self.ensure_column(column))
-#         result = await self.agg(func, filter=filter)
-#         return util.reduce(result.values())
+        func: Function = db.func.max(self.ensure_column(column))
+        result = await self.agg(func, filter=filter)
+        return util.reduce(result.values())
 
-#     async def min(
-#         self, column: Union[str, Column] = None, filter: Union[str, TextClause] = None
-#     ) -> int:
-#         """ Get the minimum value of the given column.  If no column is specified,
-#             the min value of the first primary key column is returned.
-#         """
+    async def min(
+        self, column: Union[str, Column] = None, filter: Union[str, TextClause] = None
+    ) -> int:
+        """ Get the minimum value of the given column.  If no column is specified,
+            the min value of the first primary key column is returned.
+        """
 
-#         func: Function = db.func.min(self.ensure_column(column))
-#         result = await self.agg(func, filter=filter)
-#         return util.reduce(result.values())
+        func: Function = db.func.min(self.ensure_column(column))
+        result = await self.agg(func, filter=filter)
+        return util.reduce(result.values())
