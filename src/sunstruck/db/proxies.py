@@ -23,10 +23,6 @@ class ProxyBase:
         self.model: Model = model
 
 
-class QueryProxy(ProxyBase):
-    pass
-
-
 class ColumnProxy(ProxyBase):
     """ Proxy object for a data model's columns """
 
@@ -124,9 +120,6 @@ class PrimaryKeyProxy(ColumnProxy):
 
 class AggregateProxy(ProxyBase):
     """ Proxy object for invoking aggregate queries against a model's underlying data """
-
-    def __init__(self, model: Model):
-        self.model: Model = model
 
     def __repr__(self):
         return f"AggregateProxy: {self.model.__module__}"
